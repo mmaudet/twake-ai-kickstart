@@ -1,0 +1,78 @@
+version: "3.9"
+services:
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: ldap
+    environment:
+      LDAP_DOMAIN: "twake.local"
+      LDAP_ADMIN_PASSWORD: admin
+    volumes:
+      - ./ldap/bootstrap:/container/service/slapd/assets/config/bootstrap/ldif/custom
+    restart: unless-stopped
+    ports:
+      - "389:389"
+    command: ["--copy-service", "--loglevel", "debug"]
+    networks:
+      - twake-network
+      
+      
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./data/postgres_data:/var/lib/postgresql/data
+      - ./postgres/init-db-postgres:/docker-entrypoint-initdb.d/
+      - ./postgres/scripts:/scripts/
+
+    networks:
+      - twake-network
+
+  valkey:
+    image: bitnamilegacy/valkey
+    container_name: visio-valkey
+    environment:
+      VALKEY_PASSWORD: valkeypass
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - twake-network
+
+  couchdb:
+    image: couchdb:latest
+    container_name: couchdb
+    restart: unless-stopped
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
+      COUCHDB_HOST: couchdb
+    volumes:
+      - ./data/couchdb:/opt/couchdb/data
+    networks:
+      - twake-network  
+      
+  mongodb:
+    image: mongo:4.2
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=linshare
+      - MONGO_INITDB_ROOT_PASSWORD=linshare
+    volumes:
+      - ./data/mongodb_data/db:/data/db
+    networks:
+      - twake-network  
+
+
+volumes:
+  postgres_data:
+
+networks:
+  twake-network:
+    external: true

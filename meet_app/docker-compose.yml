@@ -1,0 +1,116 @@
+version: "3.9"
+services:
+  livekit:
+    image: livekit/livekit-server:v1.8.3
+    container_name: visio-livekit
+    command: ["--config", "/etc/livekit.yaml"]
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+    restart: always
+    ports:
+    - "7880:7880"
+    - "7881:7881/tcp"
+    - "7881:7881/udp"
+    networks:
+      - twake-network
+
+  backend:
+    #image: ghcr.io/cozy/meet-backend:0.0.1
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: visio-backend
+    entrypoint: |
+      /bin/sh -c "
+       python manage.py migrate --no-input && \
+       gunicorn -c /usr/local/etc/gunicorn/meet.py --forwarded-allow-ips="*" meet.wsgi:application --reload"
+    user: root    
+    environment:
+      #DJANGO_CONFIGURATION: Production
+      DJANGO_CONFIGURATION: Development
+      DJANGO_SETTINGS_MODULE: meet.settings
+      DISABLE_DJANGO_EXTENSIONS: "true"
+      DJANGO_ALLOWED_HOSTS: "*"
+      DJANGO_SILENCED_SYSTEM_CHECKS: security.W004, security.W008
+      DJANGO_EMAIL_HOST: "mailcatcher"
+      DJANGO_EMAIL_PORT: 1025
+      DJANGO_EMAIL_USE_SSL: False
+      DJANGO_SECRET_KEY: ThisIsAnExampleKeyForDevPurposeOnly
+      CSRF_TRUSTED_ORIGINS: https://meet.twake.local
+      #CSRF_TRUSTED_ORIGINS: http://localhost:8080
+      ALLOWED_HOSTS: meet.twake.local
+      REDIS_URL: redis://:valkeypass@valkey:6379/0
+
+      DB_HOST: postgres
+      DB_NAME: meet
+      DB_USER: visio
+      DB_PASSWORD: visio
+      DB_PORT: 5432
+
+      STORAGES_STATICFILES_BACKEND: django.contrib.staticfiles.storage.StaticFilesStorage
+
+      LIVEKIT_API_KEY: 9f3b2c7a8e6d4f1c
+      LIVEKIT_API_SECRET: 6a9d0a3f5e4b8c2f9a7d6e3c1b4f8a2e
+      LIVEKIT_API_URL: http://localhost:7880
+      LIVEKIT_VERIFY_SSL: False
+      ALLOW_UNREGISTERED_ROOMS: false
+      FRONTEND_SILENCE_LIVEKIT_DEBUG: False
+      RESOURCE_DEFAULT_ACCESS_LEVEL: trusted
+
+      OIDC_RP_CLIENT_ID: visio
+      OIDC_RP_CLIENT_SECRET: visio-secret
+      OIDC_RP_SCOPES: "openid email profile"
+
+      OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.twake.local/oauth2/authorize
+      OIDC_OP_TOKEN_ENDPOINT: https://auth.twake.local/oauth2/token
+      OIDC_OP_USER_ENDPOINT: https://auth.twake.local/oauth2/userinfo
+      OIDC_OP_JWKS_ENDPOINT: https://auth.twake.local/oauth2/jwks
+      OIDC_OP_LOGOUT_ENDPOINT: https://auth.twake.local//oauth2/logout
+      OIDC_RP_SIGN_ALGO: RS256
+      OIDC_REDIRECT_ALLOWED_HOSTS: meet.twake.local
+      OIDC_REDIRECT_REQUIRE_HTTPS: True
+      OIDC_VERIFY_SSL: False
+      FRONTEND_IS_SILENT_LOGIN_ENABLED: False
+      LOGIN_REDIRECT_URL: /
+      LOGIN_REDIRECT_URL_FAILURE: /
+      LOGOUT_REDIRECT_URL: /
+
+      RECORDING_ENABLE: "true"
+      RECORDING_OUTPUT_FOLDER: "recordings"
+      RECORDING_STORAGE_EVENT_ENABLE: "false"
+    restart: always
+    ports:
+      - "8000:8000" 
+    networks:
+      - twake-network
+
+  frontend:
+    image: ghcr.io/cozy/meet-frontend:0.0.1
+    container_name: visio-frontend
+    depends_on:
+      - backend
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./twake-server.key:/etc/ssl/certs/twake-server.key
+      - ./twake-server.pem:/etc/ssl/private/twake-server.pem
+    environment:
+      #VITE_API_BASE_URL: https://localhost:8080/
+      VITE_API_BASE_URL: https://meet.twake.local/
+      VITE_HOST: 0.0.0.0
+      VITE_PORT: 443
+      VITE_ENABLE_RECORDING: true
+    restart: always
+    ports:
+      - "4433:443"
+    networks:
+      - twake-network
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.meet.rule=Host(`meet.twake.local`)"
+      - "traefik.http.services.meet.loadbalancer.server.port=443"
+      - "traefik.http.services.meet.loadbalancer.server.scheme=https"
+      - "traefik.http.services.meet.loadbalancer.serversTransport=insecure-transport@file"
+
+networks:
+  twake-network:
+    external: true

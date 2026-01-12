@@ -1,0 +1,31 @@
+dn: ou=People,dc=twake,dc=local
+objectClass: organizationalUnit
+ou: People
+
+
+dn: uid=user1,ou=People,dc=twake,dc=local
+objectClass: inetOrgPerson
+uid: user1
+cn: User One
+sn: One
+givenName: User One
+mail: user1@twake.local
+userPassword: user1
+
+dn: uid=user2,ou=People,dc=twake,dc=local
+objectClass: inetOrgPerson
+uid: user2
+cn: User Two
+sn: Two
+givenName: User Two
+mail: user2@twake.local
+userPassword: user2
+
+dn: uid=user3,ou=People,dc=twake,dc=local
+objectClass: inetOrgPerson
+uid: user3
+cn: User Three
+sn: Three
+givenName: User Three
+mail: user3@twake.local
+userPassword: user3

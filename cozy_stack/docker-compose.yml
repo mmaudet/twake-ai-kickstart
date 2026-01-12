@@ -1,0 +1,33 @@
+services:
+
+  cozy-stack:
+    image: cozy/cozy-stack:latest
+    container_name: cozy
+    restart: unless-stopped
+    #ports:
+      #- "8080:8080"
+      #- "6060:6060"     
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cozy.rule=HostRegexp(`{subdomain:dwho-home|dwho|dwho-drive|oauthcallback|ik|ik-home|ik-notes|user1|user1-home|user1-linshare|user1-drive|user1-dataproxy|user2|user2-home|user2-settings|user2-store|user2-drive}.twake.local`)"
+      - "traefik.http.routers.cozy.entrypoints=websecure"
+      - "traefik.http.routers.cozy.tls=true"
+      - "traefik.http.services.cozy.loadbalancer.server.port=8080"
+    environment:
+      COUCHDB_HOST: couchdb
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
+      COZY_ADMIN_PASSPHRASE: admin
+    extra_hosts:
+      - "auth.twake.local:172.27.0.9"
+    volumes:
+      - ./volumes/data:/var/lib/cozy/
+      - ./config/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
+      - ./config/cozy.yaml:/etc/cozy/cozy.yaml
+      - ./config/root-ca.crt:/usr/local/share/ca-certificates/root-ca.crt
+    networks:
+      - twake-network  
+
+networks:
+  twake-network:
+    external: true
