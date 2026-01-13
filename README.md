@@ -12,7 +12,7 @@ Centralized data storage services used by other components.
 *   **MongoDB**: Document store for LinShare.
 *   **CouchDB**: Database for Cozy Stack.
 *   **OpenLDAP**: Directory service for user management.
-*   **Valkey (Redis)**: In-memory data store.
+*   **Valkey (Redis)**: In-memory data store
 
 ### 2. Authentication & Proxy Layer (`twake_auth`)
 Handles entry points and security.
