@@ -30,8 +30,8 @@ services:
             - CLAMAV_PORT=3310
             - MONGODB_DATA_REPLICA_SET=mongodb:27017
             - MONGODB_SMALLFILES_REPLICA_SET=mongodb:27017
-            - MONGODB_USER=linshare
-            - MONGODB_PASSWORD=linshare
+            - MONGODB_USER=mongoroot
+            - MONGODB_PASSWORD=password
             - THUMBNAIL_ENABLE=true
             - START_DEBUG=1
             - DEBUG=1

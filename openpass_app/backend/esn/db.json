@@ -1,0 +1,15 @@
+{
+  "connectionOptions": {
+    "w": 1,
+    "fsync": true,
+    "useNewUrlParser": true,
+    "useUnifiedTopology": true,
+    "useCreateIndex": true,
+    "useFindAndModify": false,
+    "keepAlive": 10000,
+    "connectTimeoutMS": 10000,
+    "auto_reconnect": true,
+    "poolSize": 10
+  },
+  "connectionString": "mongodb://mongoroot:password@mongodb:27017/esn?authSource=admin"
+}

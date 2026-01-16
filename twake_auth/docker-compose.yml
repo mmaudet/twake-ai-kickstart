@@ -42,7 +42,7 @@ services:
       - ./traefik/ssl/:/ssl/
     networks:
       twake-network:
-        ipv4_address: 172.27.0.9  
+        ipv4_address: 172.27.0.100 
       
   twake-docker-socket:
     container_name: docker-socket

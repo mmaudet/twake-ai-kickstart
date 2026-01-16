@@ -53,6 +53,7 @@ docker network create twake-net --subnet=172.27.0.0/16
 It is recommended to start the components in the following order to ensure dependencies (databases, auth) are ready before the applications.
 
 #### Step 1: Start Databases
+In order to pull Linshare components, you need to be logged in to Linagora Docker registry.
 Navigate to the database directory and start the services:
 ```bash
 cd twake_db
@@ -81,7 +82,20 @@ docker-compose up -d
 cd ..
 ```
 
-#### Step 5: Start Cozy Stack
+#### Step 5: Start OnlyOffice Application
+```bash
+cd onlyoffice_app
+docker-compose up -d
+cd ..
+```
+#### Step 6: Start Calendar Application
+```bash
+cd calendar_app
+docker-compose up -d
+cd ..
+```
+
+#### Step 7: Start Cozy Stack
 ```bash
 cd cozy_stack
 docker-compose up -d
@@ -99,9 +113,11 @@ docker ps
 *   **Domains**: The stack is configured for `*.twake.local` domains. Configure your `/etc/hosts` with:
 
 ```bash
-127.0.0.1  linshare.twake.local admin-linshare.twake.local upload-request-linshare.twake.local meet.twake.local
-127.0.0.1  oauthcallback.twake.local manager.twake.local auth.twake.local
-127.0.0.1  user1.twake.local user1-home.twake.local user1-linshare.twake.local user1-drive.twake.local
+127.0.0.1  linshare.twake.local admin-linshare.twake.local upload-request-linshare.twake.local meet.twake.local onlyoffice.twake.local calendar.twake.local contacts.twake.local account.twake.local excal.twake.local
+127.0.0.1  oauthcallback.twake.local manager.twake.local auth.twake.local tcalendar-side-service.twake.local sabre-dav.twake.local
+127.0.0.1  user1.twake.local user1-home.twake.local user1-linshare.twake.local user1-drive.twake.local user1-settings.twake.local
+127.0.0.1  user2.twake.local user2-home.twake.local user2-linshare.twake.local user2-drive.twake.local user2-settings.twake.local
+127.0.0.1  user3.twake.local user3-home.twake.local user3-linshare.twake.local user3-drive.twake.local user3-settings.twake.local
 ```
 
 *   **Certificates**: SSL certificates are expected in `twake_auth/traefik/ssl/`.
@@ -109,6 +125,9 @@ docker ps
 ## Quick Start Guide
 
 Once everything is running, follow these steps to configure the services:
+
+### Configure Lemonldap-ng
+If Lemonldap-ng is not configured, you can restore the configuration file from ./twake_auth/config/lmConf-1.json in the manager interface : https://manager.twake.local/
 
 ### Configure LinShare
 
@@ -125,34 +144,41 @@ Once everything is running, follow these steps to configure the services:
    - Select **Domain**
    - Click on the suggested domain
    - Select **User Providers**
+   - Click on **Create new provider**
+   - Select **OIDC**
    - Fill in the **Associated domain identifier** with `domain_discriminator` and save
+
+### Configure Calendar
+In order to configure calendar, run the following command:
+```bash
+cd calendar_app
+./patch-calendar.sh
+```  
+
+### Configure OnlyOffice
+In order to integrate OnlyOffice with cozy, run the following command:
+```bash
+cd onlyoffice_app
+./patch-onlyoffice.sh
+```   
 
 ### Configure Cozy Stack
 
-1. Access the Cozy Stack container:
+1. For cozy stack instances setup, run the following command:
 ```bash
-docker exec -it <cozy-stack-container-name> bash
+cd cozy_stack
+./patch-cozy.sh
 ```
-
-2. Check the server status:
-```bash
-cozy-stack status
-```
-
-3. If the server returns OK, add instances to Cozy Stack:
-```bash
-cozy-stack instances add \
-    --apps home,linshare,drive \
-    --email "user1@twake.local" \
-    --context-name default \
-    user1.twake.local
-```
-
-4. Configure feature flags:
-```bash
-cozy-stack feature flags --domain user1.twake.local '{"linshare.embedded-app-url": "https://linshare.twake.local/new/"}'
-```
-
-5. Access Cozy Stack at `https://user1.twake.local`:
+2. This will create three cozy instances: user1, user2 and user3
+The credentials are the following:
    - **Username**: `user1`
    - **Password**: `user1`
+
+   - **Username**: `user2`
+   - **Password**: `user2`
+
+   - **Username**: `user3` 
+   - **Password**: `user3`
+
+3. To access cozy stack instances, browse to `https://user1.twake.local`, `https://user2.twake.local` and `https://user3.twake.local`
+

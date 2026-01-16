@@ -1,0 +1,136 @@
+
+services:
+
+  esn:
+    image: linagora/esn:branch-master
+    container_name: esn
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-s", "-f", "http://localhost:8080/api/monitoring"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    environment:
+      - GENERATE_DB_CONFIG_FROM_ENV=false
+      - PROVISION=false
+      - REDIS_HOST=valkey
+      - REDIS_PORT=6379
+      - AMQP_HOST=rabbitmq
+      - AMQP_PORT=5672
+      - ELASTICSEARCH_HOST=elasticsearch
+      - NODE_EXTRA_CA_CERTS=/etc/ssl/certs/root-ca.crt
+    volumes:
+      - ./backend/esn/db.json:/var/www/config/db.json
+      - ./backend/esn/oidc.json:/var/www/config/oidc.json
+      - ./backend/esn/constants.js:/var/www/node_modules/linagora.esn.oidc/backend/lib/constants.js
+      - ./backend/esn/default.production.json:/var/www/config/default.production.json
+      - ./root-ca.crt:/etc/ssl/certs/root-ca.crt
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.esn.rule=Host(`esn.twake.local`)"  
+      - "traefik.http.services.esn.loadbalancer.server.port=8080"
+    networks:
+      - twake-network
+
+
+  sabre:
+    image: chibenwa/sabre:lng-21-02-2025
+    container_name: sabre
+    restart: always
+    environment:
+      - AMQP_HOST=rabbitmq
+      - AMQP_PORT=5672
+      - AMQP_LOGIN=guest
+      - AMQP_PASSWORD=guest
+      - ESN_MONGO_URI=mongoroot:password@mongodb:27017/esn?authSource=admin
+      - SABRE_MONGO_URI=mongoroot:password@mongodb:27017/sabre?authSource=admin
+      - ESN_HOST=esn
+      - ESN_PORT=8080
+      - ELASTICSEARCH_HOST=elasticsearch
+      - ELASTICSEARCH_PORT=9200
+      - SABRE_ENV=production
+      - OPENPASS_BASIC_AUTH=YWRtaW5AZ292bXUub3JnOjlqWmFuRkZOY0ZTN0oK
+      - SABRE_ENV=production
+      - LDAP_SERVER=ldap://ldap:389
+      - LDAP_ADMIN_DN=cn=admin,dc=twake,dc=local
+      - LDAP_ADMIN_PASSWORD=admin
+      - LDAP_BASE=ou=People,dc=twake,dc=local
+      - LDAP_USERNAME_MODE=username
+      - LDAP_BASE_WITH_MAIL=ou=People,dc=twake,dc=local
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sabre.rule=Host(`sabre.twake.local`)"  
+      - "traefik.http.services.sabre.loadbalancer.server.port=80"  
+    networks:
+      - twake-network
+      
+  fe-account:
+    image: linagora/esn-frontend-account:main
+    container_name: fe-account
+    restart: always
+    environment:
+      - OPENPAAS_URL=https://esn.twake.local
+    volumes:
+      - ./frontend/account/openpaas.js:/usr/share/nginx/html/assets/env/openpaas.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.feaccount.rule=Host(`account-calendar.twake.local`)" 
+      - "traefik.http.services.feaccount.loadbalancer.server.port=80" 
+    networks:
+      - twake-network
+
+
+  fe-admin:
+    image: linagora/esn-frontend-admin:main
+    container_name: fe-admin
+    restart: always
+    environment:
+      - OPENPAAS_URL=https://esn.twake.local
+    volumes:
+      - ./frontend/admin/openpaas.js:/usr/share/nginx/html/assets/env/openpaas.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.feadmin.rule=Host(`admin-calendar.twake.local`)"
+      - "traefik.http.services.feadmin.loadbalancer.server.port=80"
+    networks:
+      - twake-network
+
+
+  fe-calendar:
+
+    image: linagora/esn-frontend-calendar:main
+    container_name: fe-calendar
+    restart: always
+    environment:
+      - OPENPAAS_URL=https://esn.twake.local
+    volumes:
+      - ./frontend/calendar/openpaas.js:/usr/share/nginx/html/assets/env/openpaas.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.calendar.rule=Host(`calendar.twake.local`)"  
+      - "traefik.http.services.calendar.loadbalancer.server.port=80"
+    networks:
+      - twake-network
+
+  fe-contacts:
+    image: linagora/esn-frontend-contacts:main
+    container_name: fe-contacts
+    restart: always
+    environment:
+      - OPENPAAS_URL=https://esn.twake.local
+    volumes:
+      - ./frontend/contacts/openpaas.js:/usr/share/nginx/html/assets/env/openpaas.js
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.contact.rule=Host(`contact.twake.local`)"
+      - "traefik.http.services.contact.loadbalancer.server.port=80"
+    networks:
+      - twake-network
+
+
+networks:
+  twake-network:
+    external: true
+
+

@@ -223,9 +223,9 @@ konnectors:
 rag:
   # A cozy will use the rag server for its context, or if the context is not
   # declared, for default.
-  default:
-    url: http://localhost:8000
-    api_key: $3cr3t
+  #default:
+   # url: http://localhost:8000
+    #api_key: $3cr3t
   beta:
     url: http://localhost:8001
     api_key: $3cr3t
@@ -367,9 +367,9 @@ move:
 # OnlyOffice server for collaborative edition of office documents
 office:
   default:
-    onlyoffice_url: https://documentserver.example.org/
-    onlyoffice_inbox_secret: inbox_secret
-    onlyoffice_outbox_secret: outbox_secret
+    onlyoffice_url: https://onlyoffice.twake.local/
+    onlyoffice_inbox_secret: secret
+    onlyoffice_outbox_secret: secret
 
 # [internal usage] Cloudery configuration
 # clouderies:

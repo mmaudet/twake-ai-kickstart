@@ -54,6 +54,8 @@ services:
       COUCHDB_HOST: couchdb
     volumes:
       - ./data/couchdb:/opt/couchdb/data
+    ports:
+      - "5984:5984"  
     networks:
       - twake-network  
       
@@ -62,14 +64,31 @@ services:
     container_name: mongodb
     restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=linshare
-      - MONGO_INITDB_ROOT_PASSWORD=linshare
+      - MONGO_INITDB_ROOT_USERNAME=mongoroot
+      - MONGO_INITDB_ROOT_PASSWORD=password
     volumes:
       - ./data/mongodb_data/db:/data/db
     networks:
-      - twake-network  
-
-
+      - twake-network
+  rabbitmq:
+    image: rabbitmq:3.13.4-management
+    container_name: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    volumes:
+      - ./data/rabbitmq_data:/var/lib/rabbitmq  
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "check_running" ]
+      interval: 60s
+      timeout: 5s
+      start_period: 120s
+      retries: 3
+    networks:
+      - twake-network
+      
+            
 volumes:
   postgres_data:
 

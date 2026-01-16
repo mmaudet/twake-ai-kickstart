@@ -29,3 +29,12 @@ sn: Three
 givenName: User Three
 mail: user3@twake.local
 userPassword: user3
+
+dn: uid=admin,ou=People,dc=twake,dc=local
+objectClass: inetOrgPerson
+uid: admin
+cn: Admin Test
+sn: Test
+givenName: Admin Test
+mail: admin@twake.local
+userPassword: admin

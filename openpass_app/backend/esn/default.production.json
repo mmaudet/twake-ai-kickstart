@@ -1,0 +1,29 @@
+{
+  "log": {
+    "console": {
+      "enabled": true,
+      "level": "info",
+      "json": false,
+      "prettyPrint": false,
+      "colorize": true
+    }
+  },
+  "modules_append": [
+    "linagora.esn.oidc"
+  ],
+  "auth": {
+    "strategies": [
+      "openid-connect",
+      "local",
+      "mongo",
+      "mongo-ldap"
+    ],
+   "apiStrategies": [
+      "basic-mongo",
+      "basic-mongo-ldap",
+      "openid-connect",
+      "bearer",
+      "jwt"
+    ]
+  }
+}
