@@ -82,20 +82,6 @@ docker compose up -d
 
 ------------------------------------------------------------------------
 
-## Step 5: Import Root CA Certificate (IMPORTANT)
-
-The side service requires trusting the custom Root CA.
-
-
-``` bash
-cd calendar_app
-chmod +x patch-calendar.sh
-./patch-calendar.sh
-
-```
-
-------------------------------------------------------------------------
-
 ## Done ✅
 
 You can now access the applications:
