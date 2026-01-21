@@ -30,10 +30,10 @@ services:
       - ./config/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
       - ./config/cozy.yaml:/etc/cozy/cozy.yaml
       - ./config/root-ca.crt:/usr/local/share/ca-certificates/root-ca.crt
-      - ./cozy-config/create-shortcut.sh:/usr/local/bin/create-shortcut.sh
-      - ./cozy-config/change-features.sh:/usr/local/bin/change-features.sh
-      - ./cozy-config/example-features.json:/usr/local/bin/example-features.json
-      - ./cozy-config/example-shortcut.json:/usr/local/bin/example-shortcut.json
+      - ./config/create-shortcut.sh:/usr/local/bin/create-shortcut.sh
+      - ./config/change-features.sh:/usr/local/bin/change-features.sh
+      - ./config/example-features.json:/usr/local/bin/example-features.json
+      - ./config/example-shortcut.json:/usr/local/bin/example-shortcut.json
     networks:
       - twake-network  
 

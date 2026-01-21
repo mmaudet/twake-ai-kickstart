@@ -18,6 +18,8 @@ services:
       - JWT_SECRET=secret
       - USE_UNAUTHORIZED_STORAGE=true
       - USE_FORWARDED_HEADERS=true
+      - ALLOW_META_IP_ADDRESS=true
+      - ALLOW_PRIVATE_IP_ADDRESS=true
       - SSL_CERTIFICATE_PATH=/var/www/onlyoffice/Data/certs/root-ca.pem
       - SSL_KEY_PATH=/var/www/onlyoffice/Data/certs/root-ca.key
       #- JWT_HEADER=Authorization
@@ -56,7 +58,7 @@ services:
        - /usr/share/fonts
        - ./root-ca.pem:/var/www/onlyoffice/Data/certs/root-ca.pem
        - ./root-ca.key:/var/www/onlyoffice/Data/certs/root-ca.key
-       #- ./config:/etc/onlyoffice/documentserver
+       #- ./local-production-linux.json:/etc/onlyoffice/documentserver/default.json
     extra_hosts:
        - "user1.twake.local:172.27.0.100"
        - "user2.twake.local:172.27.0.100"
