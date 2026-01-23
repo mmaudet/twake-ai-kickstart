@@ -19,7 +19,6 @@ services:
       - cluster.name=opensearch
       - DISABLE_SECURITY_PLUGIN=true
       - DISABLE_INSTALL_DEMO_CONFIG=true
-    # no published ports (avoid conflicts with existing stack)
     volumes:
       - opensearch_data:/usr/share/opensearch/data
     healthcheck:
@@ -36,13 +35,11 @@ services:
     networks:
       - twake-network
     ports:
-      # Mail ports still exposed directly
       - "25:25"       # SMTP
       - "143:143"     # IMAP
       - "465:465"     # SMTPS
       - "587:587"     # SMTP Submission
       - "993:993"     # IMAPS
-      # JMAP and WebAdmin are expected to be fronted by your existing reverse proxy
     volumes:
       - ./config:/root/conf
       - ./extensions-jars:/root/extensions-jars
@@ -76,7 +73,6 @@ services:
       - "traefik.http.routers.mail-backend-jmap-wellknown.tls=true"
       - "traefik.http.routers.mail-backend-jmap-wellknown.middlewares=cors-headers@file"
       - "traefik.http.routers.mail-backend-jmap-wellknown.priority=500"
-      #- "traefik.http.services.mail-backend-jmap-wellknown.loadbalancer.server.port=9081"
       - "traefik.http.routers.mail-backend-jmap-wellknown.service=tmail-jmap"
 
       # JMAP /jmap endpoints (priority 300)
@@ -85,7 +81,6 @@ services:
       - "traefik.http.routers.mail-backend-jmap.tls=true"
       - "traefik.http.routers.mail-backend-jmap.middlewares=cors-headers@file"
       - "traefik.http.routers.mail-backend-jmap.priority=300"
-      #- "traefik.http.services.mail-backend-jmap.loadbalancer.server.port=9081"
       - "traefik.http.routers.mail-backend-jmap.service=tmail-jmap"
       
       # WebFinger default (non-OpenID queries) → TMail Backend (priority 200)
@@ -94,7 +89,6 @@ services:
       - "traefik.http.routers.mail-backend-webfinger.tls=true"
       - "traefik.http.routers.mail-backend-webfinger.middlewares=cors-headers@file"
       - "traefik.http.routers.mail-backend-webfinger.priority=200"
-      #- "traefik.http.services.mail-backend-webfinger.loadbalancer.server.port=9081"
       - "traefik.http.routers.mail-backend-webfinger.service=tmail-jmap"
 
       # WebAdmin API (fallback, lowest priority)
@@ -103,7 +97,6 @@ services:
       - "traefik.http.routers.mail-backend-webadmin.tls=true"
       - "traefik.http.routers.mail-backend-webadmin.middlewares=cors-headers@file"
       - "traefik.http.routers.mail-backend-webadmin.priority=1"
-      #- "traefik.http.services.mail-backend-webadmin.loadbalancer.server.port=8000"
       - "traefik.http.routers.mail-backend-webadmin.service=tmail-webadmin"
       # Middleware definitions
       - "traefik.http.middlewares.lemonldap-host.headers.customRequestHeaders.Host=jmap.twake.local"

@@ -4,7 +4,6 @@ services:
     image: yadd/lemonldap-ng-full:2.21.2-3
     container_name: lemonldap-ng
     volumes:
-      #- lemonldap-conf:/var/lib/lemonldap-ng/conf
       - ./config/lmConf-1.json:/var/lib/lemonldap-ng/conf/lmConf-1.json
     environment:
       - SSODOMAIN=twake.local
@@ -18,8 +17,6 @@ services:
       - "traefik.http.routers.lemonldap-man.rule=Host(`manager.twake.local`)"  
     restart: unless-stopped
 
-    #ports:
-      #- "80:80"
     networks:
       - twake-network
   reverse-proxy:

@@ -46,8 +46,7 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
-    #volumes:
-      #- /valkey_data:/bitnami/valkey/data  
+ 
     networks:
       - twake-network
 
@@ -116,7 +115,7 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     entrypoint: ["/bin/bash", "/etc/rabbitmq/rabbitmq-init.sh"]  
-  # ==================== Database ====================
+
   cassandra:
     image: bitnamilegacy/cassandra:4.1.7
     container_name: cassandra
@@ -131,7 +130,7 @@ services:
       - JAVA_TOOL_OPTIONS=-Dcassandra.skip_wait_for_gossip_to_settle=0
       - HEAP_NEWSIZE=256M
       - MAX_HEAP_SIZE=1024M
-    # no published ports (avoid conflicts with existing stack)
+ 
     volumes:
       - cassandra_data:/bitnami/cassandra
     healthcheck:
@@ -140,7 +139,7 @@ services:
       timeout: 10s
       retries: 5
 
-  # ==================== Cache & Queue ====================
+
   redis:
     image: bitnamilegacy/redis:7.4.2
     container_name: redis
@@ -148,7 +147,6 @@ services:
     restart: always
     networks:
       - twake-network
-    # no published ports (avoid conflicts with existing stack)
     environment:
       - REDIS_PASSWORD=xY4zA7bC9dE2fG5hJ
     volumes:
@@ -161,7 +159,6 @@ services:
 
 
 
-  # ==================== Object Storage ====================
   minio:
     image: bitnamilegacy/minio:2025.2.7
     container_name: minio
@@ -169,7 +166,6 @@ services:
     restart: always
     networks:
       - twake-network
-    # no published ports (avoid conflicts with existing stack)
     environment:
       - MINIO_ROOT_USER=vW9xY2zA5bC8dE1fG4hJ3kL
       - MINIO_ROOT_PASSWORD=hJ6kL9mN2pQ5rS8tU1vW4xY7zA0bC3dE6fG9hJ2kL
@@ -199,8 +195,7 @@ volumes:
     driver: local
   minio_data:
     driver: local    
-  #valkey_data:
-    #driver: local
+
 
 
 networks:

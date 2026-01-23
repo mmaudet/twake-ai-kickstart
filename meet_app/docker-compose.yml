@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   livekit:
     image: livekit/livekit-server:v1.8.3
@@ -15,7 +14,6 @@ services:
       - twake-network
 
   backend:
-    #image: ghcr.io/cozy/meet-backend:0.0.1
     build:
       context: .
       dockerfile: Dockerfile
@@ -26,7 +24,6 @@ services:
        gunicorn -c /usr/local/etc/gunicorn/meet.py --forwarded-allow-ips="*" meet.wsgi:application --reload"
     user: root    
     environment:
-      #DJANGO_CONFIGURATION: Production
       DJANGO_CONFIGURATION: Development
       DJANGO_SETTINGS_MODULE: meet.settings
       DISABLE_DJANGO_EXTENSIONS: "true"
@@ -37,7 +34,6 @@ services:
       DJANGO_EMAIL_USE_SSL: False
       DJANGO_SECRET_KEY: ThisIsAnExampleKeyForDevPurposeOnly
       CSRF_TRUSTED_ORIGINS: https://meet.twake.local
-      #CSRF_TRUSTED_ORIGINS: http://localhost:8080
       ALLOWED_HOSTS: meet.twake.local
       REDIS_URL: redis://:valkeypass@valkey:6379/0
 
@@ -94,7 +90,6 @@ services:
       - ./twake-server.key:/etc/ssl/certs/twake-server.key
       - ./twake-server.pem:/etc/ssl/private/twake-server.pem
     environment:
-      #VITE_API_BASE_URL: https://localhost:8080/
       VITE_API_BASE_URL: https://meet.twake.local/
       VITE_HOST: 0.0.0.0
       VITE_PORT: 443

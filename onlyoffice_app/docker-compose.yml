@@ -1,8 +1,6 @@
 services:
   onlyoffice-documentserver:
-    #build:
-      #context: .
-    image: onlyoffice/documentserver:8.0.1 #[-de,-ee]
+    image: onlyoffice/documentserver:8.0.1 
     container_name: onlyoffice-documentserver
 
     environment:
@@ -13,7 +11,6 @@ services:
       - DB_USER=onlyoffice
       - DB_PWD=onlyoffice
       - AMQP_URI=amqp://guest:guest@rabbitmq
-      # Uncomment strings below to enable the JSON Web Token validation.
       - JWT_ENABLED=true
       - JWT_SECRET=secret
       - USE_UNAUTHORIZED_STORAGE=true
@@ -22,11 +19,7 @@ services:
       - ALLOW_PRIVATE_IP_ADDRESS=true
       - SSL_CERTIFICATE_PATH=/var/www/onlyoffice/Data/certs/root-ca.pem
       - SSL_KEY_PATH=/var/www/onlyoffice/Data/certs/root-ca.key
-      #- JWT_HEADER=Authorization
-      #- JWT_IN_BODY=true
-    #ports:
-      #- '80:80'
-      #- '443:443'
+
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.onlyoffice.rule=Host(`onlyoffice.twake.local`)"
@@ -35,12 +28,7 @@ services:
       - "traefik.http.services.onlyoffice.loadbalancer.server.port=443" 
       - "traefik.http.services.onlyoffice.loadbalancer.server.scheme=https"
       - "traefik.http.services.onlyoffice.loadbalancer.serversTransport=insecure-transport@file" 
-      #- "traefik.enable=true"
-      #- "traefik.http.routers.onlyoffice-http.rule=Host(`onlyoffice.twake.local`)"
-      #- "traefik.http.routers.onlyoffice-http.entrypoints=web"
-      #- "traefik.http.routers.onlyoffice.rule=Host(`onlyoffice.twake.local`)"
-      #- "traefik.http.routers.onlyoffice.entrypoints=websecure"
-      #- "traefik.http.routers.onlyoffice-http.middlewares=redirect-to-https"  
+
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/info/info.json"]
       interval: 30s
@@ -58,7 +46,6 @@ services:
        - /usr/share/fonts
        - ./root-ca.pem:/var/www/onlyoffice/Data/certs/root-ca.pem
        - ./root-ca.key:/var/www/onlyoffice/Data/certs/root-ca.key
-       #- ./local-production-linux.json:/etc/onlyoffice/documentserver/default.json
     extra_hosts:
        - "user1.twake.local:172.27.0.100"
        - "user2.twake.local:172.27.0.100"
@@ -71,8 +58,6 @@ services:
     container_name: patcher
     networks:
       - twake-network
-    #environment:
-      #DOCKER_HOST: tcp://docker-socket:2375
     depends_on:
       - onlyoffice-documentserver  
     volumes:
