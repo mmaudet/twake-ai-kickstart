@@ -3,7 +3,7 @@ window.openpaas = {
     OPENPAAS_API_URL: 'https://tcalendar-side-service.twake.local',
     BASE_URL: '',
     ACCOUNT_SPA_URL: 'https://account.twake.local/account/',
-    MAILTO_SPA_URL:'https://tmail.twake.local',
+    MAILTO_SPA_URL:'https://mail.twake.local',
     APP_GRID_ITEMS: '[ { "name": "Contacts", "url": "https://contacts.twake.local/contacts/" }]',
     AUTH_PROVIDER_SETTINGS: {
         authority: 'https://auth.twake.local/',
