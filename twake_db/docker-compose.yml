@@ -9,9 +9,11 @@ services:
       - ldap_data:/var/lib/ldap
       - ./ldap/bootstrap:/container/service/slapd/assets/config/bootstrap/ldif/custom
     restart: unless-stopped
-    ports:
-      - "389:389"
+    #ports:
+      #- "389:389"
     command: ["--copy-service", "--loglevel", "debug"]
+    labels:
+      - "traefik.enable=false"
     networks:
       - twake-network
       
@@ -20,8 +22,8 @@ services:
     image: postgres:16
     container_name: postgres
     restart: unless-stopped
-    ports:
-      - "5432:5432"
+    #ports:
+      #- "5432:5432"
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -35,6 +37,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    labels:
+      - "traefik.enable=false"  
     networks:
       - twake-network
 
@@ -44,8 +48,10 @@ services:
     environment:
       VALKEY_PASSWORD: valkeypass
     restart: unless-stopped
-    ports:
-      - "6379:6379"
+    labels:
+      - "traefik.enable=false"
+    #ports:
+      #- "6379:6379"
  
     networks:
       - twake-network
@@ -54,14 +60,16 @@ services:
     image: couchdb:latest
     container_name: couchdb
     restart: unless-stopped
+    labels:
+      - "traefik.enable=false"
     environment:
       COUCHDB_USER: admin
       COUCHDB_PASSWORD: password
       COUCHDB_HOST: couchdb
     volumes:
       - /couchdb_data:/opt/couchdb/data
-    ports:
-      - "5984:5984"  
+    #ports:
+      #- "5984:5984"  
     networks:
       - twake-network  
       
@@ -74,10 +82,12 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: password
     networks:
       - twake-network
+    labels:
+      - "traefik.enable=false"  
     volumes:
       - /mongodb_data/db:/data/db
-    ports:
-      - "27017:27017"
+    #ports:
+      #- "27017:27017"
     command: [ "mongod", "--bind_ip", "0.0.0.0" ]
     healthcheck:
       test:
@@ -103,9 +113,9 @@ services:
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq  
       - ./rabbitmq/entrypoint.sh:/etc/rabbitmq/rabbitmq-init.sh
-    ports:
-      - "15672:15672"  # Management UI
-      - "5672:5672"    # AMQP port
+    #ports:
+      #- "15672:15672"  # Management UI
+      #- "5672:5672"    # AMQP port
     healthcheck:
       test: rabbitmq-diagnostics -q ping
       interval: 3s
@@ -114,6 +124,8 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    labels:
+      - "traefik.enable=false"  
     entrypoint: ["/bin/bash", "/etc/rabbitmq/rabbitmq-init.sh"]  
 
   cassandra:
@@ -123,6 +135,8 @@ services:
     restart: always
     networks:
       - twake-network
+    labels:
+      - "traefik.enable=false"  
     environment:
       - CASSANDRA_USER=cassandra
       - CASSANDRA_PASSWORD=jK9mL2nP5qR8tW3vX
@@ -140,25 +154,6 @@ services:
       retries: 5
 
 
-  redis:
-    image: bitnamilegacy/redis:7.4.2
-    container_name: redis
-    hostname: redis
-    restart: always
-    networks:
-      - twake-network
-    environment:
-      - REDIS_PASSWORD=xY4zA7bC9dE2fG5hJ
-    volumes:
-      - redis_data:/bitnami/redis/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "-a", "xY4zA7bC9dE2fG5hJ", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-
-
-
   minio:
     image: bitnamilegacy/minio:2025.2.7
     container_name: minio
@@ -172,6 +167,8 @@ services:
       - MINIO_SCHEME=http
     volumes:
       - minio_data:/bitnami/minio/data
+    labels:
+      - "traefik.enable=false"  
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
       interval: 30s

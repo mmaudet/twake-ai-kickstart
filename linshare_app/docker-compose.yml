@@ -4,10 +4,8 @@ services:
         container_name: linshare_backend
         restart: on-failure
         image: docker-registry.linagora.com:5000/linshare-snapshots/linshare-backend:6.5.3
-        ports:
-            - "8080:8080"
         volumes:
-            - ./data/linshare_data/lib:/var/lib/linshare
+            - /linshare_data/lib:/var/lib/linshare
             - ./config/backend/log4j.properties:/etc/linshare/log4j.properties
             - ./config/root-ca.pem:/new-ca/root-ca.pem
             - ./config/backend/linshare.extra.properties:/etc/linshare/linshare.extra.properties            
@@ -121,6 +119,9 @@ services:
         image: mkodockx/docker-clamav
         networks:
             - twake-network
+volumes:
+  linshare_data:
+    driver: local            
 networks:
   twake-network:
     external: true

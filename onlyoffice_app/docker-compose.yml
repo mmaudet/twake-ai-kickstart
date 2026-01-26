@@ -69,5 +69,3 @@ services:
 networks:
   twake-network:
     external: true
-volumes:
-  postgresql_data:

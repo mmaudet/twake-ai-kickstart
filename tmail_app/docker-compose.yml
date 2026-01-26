@@ -21,6 +21,8 @@ services:
       - DISABLE_INSTALL_DEMO_CONFIG=true
     volumes:
       - opensearch_data:/usr/share/opensearch/data
+    labels:
+      - "traefik.enable=false"  
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
       interval: 30s
@@ -34,18 +36,19 @@ services:
     restart: always
     networks:
       - twake-network
-    ports:
-      - "25:25"       # SMTP
-      - "143:143"     # IMAP
-      - "465:465"     # SMTPS
-      - "587:587"     # SMTP Submission
-      - "993:993"     # IMAPS
+    #ports:
+      #- "25:25"       # SMTP
+      #- "143:143"     # IMAP
+      #- "465:465"     # SMTPS
+      #- "587:587"     # SMTP Submission
+      #- "993:993"     # IMAPS
     volumes:
       - ./config:/root/conf
       - ./extensions-jars:/root/extensions-jars
       - ./secrets:/root/secrets
     depends_on:
-      - opensearch  
+      opensearch:
+        condition: service_healthy  
     labels:
       - "traefik.enable=true"
       # Define services explicitly (solves "too many services" error)
@@ -145,8 +148,8 @@ services:
     restart: always
     networks:
       - twake-network
-    ports:
-      - "8081:80"  # Access UI on http://localhost:8081
+    #ports:
+      #- "8081:80"  # Access UI on http://localhost:8081
     environment:
       - "PHPLDAPADMIN_HTTPS=false"
       - "PHPLDAPADMIN_LDAP_CLIENT_TLS_REQCERT=never"

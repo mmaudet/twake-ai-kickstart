@@ -44,13 +44,15 @@ services:
       - cozy-stack  
     environment:
       - CONTAINER=cozyt   
+      - ENABLE_APPS="mail,calendar,meet"
     volumes:
       - ./scripts:/scripts
       - /var/run/docker.sock:/var/run/docker.sock
     entrypoint: ["/bin/sh", "/scripts/entrypoint.sh"]
     restart: "no" 
 volumes:
-  cozy-data:    
+  cozy-data:   
+    driver: local 
 networks:
   twake-network:
     external: true

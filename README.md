@@ -57,54 +57,54 @@ In order to pull Linshare components, you need to be logged in to Linagora Docke
 Navigate to the database directory and start the services:
 ```bash
 cd twake_db
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 
 #### Step 2: Start Authentication & Proxy Layer
 ```bash
 cd twake_auth
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 
 #### Step 3: Start Meet Application
 ```bash
 cd meet_app
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 
 #### Step 4: Start LinShare Application
 ```bash
 cd linshare_app
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 
 #### Step 5: Start OnlyOffice Application
 ```bash
 cd onlyoffice_app
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 #### Step 6: Start Calendar Application
 ```bash
 cd calendar_app
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 #### Step 7: Start TMail Application
 ```bash
 cd tmail_app
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 
 #### Step 8: Start Cozy Stack
 ```bash
 cd cozy_stack
-docker-compose up -d
+docker compose up -d
 cd ..
 ```
 

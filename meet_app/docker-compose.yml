@@ -6,10 +6,12 @@ services:
     volumes:
       - ./livekit.yaml:/etc/livekit.yaml:ro
     restart: always
-    ports:
-    - "7880:7880"
-    - "7881:7881/tcp"
-    - "7881:7881/udp"
+    #ports:
+    #- "7880:7880"
+    #- "7881:7881/tcp"
+    #- "7881:7881/udp"
+    labels:
+      - "traefik.enable=false"
     networks:
       - twake-network
 
@@ -75,8 +77,12 @@ services:
       RECORDING_OUTPUT_FOLDER: "recordings"
       RECORDING_STORAGE_EVENT_ENABLE: "false"
     restart: always
-    ports:
-      - "8000:8000" 
+    extra_hosts:
+      - "auth.twake.local:172.27.0.100"
+    #ports:
+    #- "8000:8000" 
+    labels:
+      - "traefik.enable=false"
     networks:
       - twake-network
 
