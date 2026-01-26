@@ -28,7 +28,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - /postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
       - ./postgres/init-db-postgres:/docker-entrypoint-initdb.d/
       - ./postgres/scripts:/scripts/
     healthcheck:
@@ -67,7 +67,7 @@ services:
       COUCHDB_PASSWORD: password
       COUCHDB_HOST: couchdb
     volumes:
-      - /couchdb_data:/opt/couchdb/data
+      - couchdb_data:/opt/couchdb/data
     #ports:
       #- "5984:5984"  
     networks:
@@ -85,7 +85,7 @@ services:
     labels:
       - "traefik.enable=false"  
     volumes:
-      - /mongodb_data/db:/data/db
+      - mongodb_data:/data/db
     #ports:
       #- "27017:27017"
     command: [ "mongod", "--bind_ip", "0.0.0.0" ]
