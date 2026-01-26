@@ -181,7 +181,7 @@ If the CA is **not trusted by the browser**, modern browsers will block or parti
 
 To avoid iframe loading issues, mixed-content warnings, and blocked resources, you **must trust the CA certificate** used by the reverse-proxy (Traefik).
 
-### What to do
+#### What to do
 
 Add the self-signed certificate to your browser:
 
