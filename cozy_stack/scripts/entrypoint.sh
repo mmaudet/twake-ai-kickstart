@@ -32,7 +32,7 @@ echo "✔ Cozy HTTP server is ready"
 # Apply the patch
 if [ -f "$PATCH_SCRIPT" ]; then
   echo "▶ Applying Cozy patch"
-  sh /scripts/patch-cozy.sh
+  ENABLE_APPS="${ENABLE_APPS}" sh /scripts/patch-cozy.sh
 
   echo "🎉 Cozy patch completed successfully"
 else

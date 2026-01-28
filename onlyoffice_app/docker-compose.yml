@@ -2,23 +2,24 @@ services:
   onlyoffice-documentserver:
     image: onlyoffice/documentserver:8.0.1 
     container_name: onlyoffice-documentserver
-
+    env_file:
+      - ./config/secrets.env 
     environment:
       - DB_TYPE=postgres
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_NAME=onlyoffice
       - DB_USER=onlyoffice
-      - DB_PWD=onlyoffice
-      - AMQP_URI=amqp://guest:guest@rabbitmq
+      #- DB_PWD=onlyoffice
+      #- AMQP_URI=amqp://guest:guest@rabbitmq
       - JWT_ENABLED=true
-      - JWT_SECRET=secret
+      #- JWT_SECRET=secret
       - USE_UNAUTHORIZED_STORAGE=true
       - USE_FORWARDED_HEADERS=true
       - ALLOW_META_IP_ADDRESS=true
       - ALLOW_PRIVATE_IP_ADDRESS=true
       - SSL_CERTIFICATE_PATH=/var/www/onlyoffice/Data/certs/root-ca.pem
-      - SSL_KEY_PATH=/var/www/onlyoffice/Data/certs/root-ca.key
+      #- SSL_KEY_PATH=/var/www/onlyoffice/Data/certs/root-ca.key
 
     labels:
       - "traefik.enable=true"
@@ -44,8 +45,8 @@ services:
        - /var/lib/onlyoffice/documentserver/App_Data/cache/files
        - /var/www/onlyoffice/documentserver-example/public/files
        - /usr/share/fonts
-       - ./root-ca.pem:/var/www/onlyoffice/Data/certs/root-ca.pem
-       - ./root-ca.key:/var/www/onlyoffice/Data/certs/root-ca.key
+       - ./config/root-ca.pem:/var/www/onlyoffice/Data/certs/root-ca.pem
+       - ./config/root-ca.key:/var/www/onlyoffice/Data/certs/root-ca.key
     extra_hosts:
        - "user1.twake.local:172.27.0.100"
        - "user2.twake.local:172.27.0.100"

@@ -104,7 +104,6 @@ create_shortcut() {
     if [ -n "$DESCRIPTION" ] && [ "$DESCRIPTION" != "null" ] && [ "$DESCRIPTION" != "" ]; then
         METADATA_ATTRS=$(echo "$METADATA_ATTRS" | jq --arg desc "$DESCRIPTION" '. + {description: $desc}')
     fi
-    echo -e "${GREEN}[1/4] Création des métadonnées...BEFORE  CURL ${NC}"
     METADATA_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST "${COZY_URL}/files/upload/metadata" \
         -H "Authorization: Bearer ${TOKEN}" \
         -H "Content-Type: application/vnd.api+json" \
@@ -114,7 +113,6 @@ create_shortcut() {
                 \"attributes\": ${METADATA_ATTRS}
             }
         }")
-    echo -e "${GREEN}[1/4] Création des métadonnées...AFTER  CURL ${NC}"
     HTTP_CODE=$(echo "$METADATA_RESPONSE" | tail -n1)
     METADATA_BODY=$(echo "$METADATA_RESPONSE" | sed '$d')
 

@@ -4,7 +4,7 @@ services:
     container_name: visio-livekit
     command: ["--config", "/etc/livekit.yaml"]
     volumes:
-      - ./livekit.yaml:/etc/livekit.yaml:ro
+      - ./config/livekit.yaml:/etc/livekit.yaml:ro
     restart: always
     #ports:
     #- "7880:7880"
@@ -24,7 +24,9 @@ services:
       /bin/sh -c "
        python manage.py migrate --no-input && \
        gunicorn -c /usr/local/etc/gunicorn/meet.py --forwarded-allow-ips="*" meet.wsgi:application --reload"
-    user: root    
+    user: root   
+    env_file:
+      - ./config/backend.env 
     environment:
       DJANGO_CONFIGURATION: Development
       DJANGO_SETTINGS_MODULE: meet.settings
@@ -34,21 +36,21 @@ services:
       DJANGO_EMAIL_HOST: "mailcatcher"
       DJANGO_EMAIL_PORT: 1025
       DJANGO_EMAIL_USE_SSL: False
-      DJANGO_SECRET_KEY: ThisIsAnExampleKeyForDevPurposeOnly
+      #DJANGO_SECRET_KEY: ThisIsAnExampleKeyForDevPurposeOnly
       CSRF_TRUSTED_ORIGINS: https://meet.twake.local
       ALLOWED_HOSTS: meet.twake.local
-      REDIS_URL: redis://:valkeypass@valkey:6379/0
+      #REDIS_URL: redis://:valkeypass@valkey:6379/1
 
       DB_HOST: postgres
       DB_NAME: meet
       DB_USER: visio
-      DB_PASSWORD: visio
+      #DB_PASSWORD: visio
       DB_PORT: 5432
 
       STORAGES_STATICFILES_BACKEND: django.contrib.staticfiles.storage.StaticFilesStorage
 
       LIVEKIT_API_KEY: 9f3b2c7a8e6d4f1c
-      LIVEKIT_API_SECRET: 6a9d0a3f5e4b8c2f9a7d6e3c1b4f8a2e
+      #LIVEKIT_API_SECRET: 6a9d0a3f5e4b8c2f9a7d6e3c1b4f8a2e
       LIVEKIT_API_URL: http://localhost:7880
       LIVEKIT_VERIFY_SSL: False
       ALLOW_UNREGISTERED_ROOMS: false
@@ -56,7 +58,7 @@ services:
       RESOURCE_DEFAULT_ACCESS_LEVEL: trusted
 
       OIDC_RP_CLIENT_ID: visio
-      OIDC_RP_CLIENT_SECRET: visio-secret
+      #OIDC_RP_CLIENT_SECRET: visio-secret
       OIDC_RP_SCOPES: "openid email profile"
 
       OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.twake.local/oauth2/authorize
@@ -92,9 +94,9 @@ services:
     depends_on:
       - backend
     volumes:
-      - ./nginx.conf:/etc/nginx/conf.d/default.conf
-      - ./twake-server.key:/etc/ssl/certs/twake-server.key
-      - ./twake-server.pem:/etc/ssl/private/twake-server.pem
+      - ./config/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./config/twake-server.key:/etc/ssl/certs/twake-server.key
+      - ./config/twake-server.pem:/etc/ssl/private/twake-server.pem
     environment:
       VITE_API_BASE_URL: https://meet.twake.local/
       VITE_HOST: 0.0.0.0

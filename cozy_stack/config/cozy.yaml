@@ -95,7 +95,7 @@ fs:
 # couchdb parameters
 couchdb:
   # CouchDB URL - flags: --couchdb-url
-  url: http://admin:password@couchdb:5984 #http://localhost:5984/ 
+  url: http://{{.Env.COUCHDB_USER}}:{{.Env.COUCHDB_PASSWORD}}@couchdb:5984 #http://localhost:5984/ 
 
   # CouchDB advanced parameters to activate TLS properties:
   #
@@ -130,6 +130,7 @@ authentication:
       userinfo_instance_suffix: .twake.local
       allow_custom_instance: false
       allow_oauth_token: true
+      logout_url: https://auth.twake.local/oauth2/logout
       #id_token_jwk_url: https://identity-provider/path/to/jwk
 # jobs parameters to configure the job system
 jobs:
@@ -368,8 +369,8 @@ move:
 office:
   default:
     onlyoffice_url: https://onlyoffice.twake.local/
-    onlyoffice_inbox_secret: secret
-    onlyoffice_outbox_secret: secret
+    onlyoffice_inbox_secret: {{.Env.INBOX_SECRET}}
+    onlyoffice_outbox_secret: {{.Env.OUTBOX_SECRET}}
 
 # [internal usage] Cloudery configuration
 # clouderies:

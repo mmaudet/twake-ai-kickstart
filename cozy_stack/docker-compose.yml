@@ -1,23 +1,25 @@
 services:
 
   cozy-stack:
-    image: cozy/cozy-stack:latest
+    image: cozy/cozy-stack:1.6.44
     container_name: cozyt
     restart: unless-stopped
    
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cozy.rule=HostRegexp(`{subdomain:user3-home|user3|user3-drive|user3-linshare|user3-mail|user3-settings|oauthcallback|user1|user1-home|user1-linshare|user1-settings|user1-drive|user1-mail|user2|user2-home|user2-settings|user2-linshare|user2-mail|user2-drive}.twake.local`)"
+      - "traefik.http.routers.cozy.rule=HostRegexp(`{subdomain:user3-home|user3|user3-drive|user3-linshare|user3-mail|user3-settings|user3-notes|oauthcallback|user1|user1-home|user1-linshare|user1-settings|user1-drive|user1-mail|user1-notes|user2|user2-home|user2-settings|user2-linshare|user2-mail|user2-drive|user2-notes}.twake.local`)"
       - "traefik.http.routers.cozy.entrypoints=websecure"
       - "traefik.http.routers.cozy.tls=true"
       - "traefik.http.services.cozy.loadbalancer.server.port=8080"
+    env_file:
+      - ./config/secret.env  
     environment:
       COUCHDB_HOST: couchdb
       COUCHDB_USER: admin
-      COUCHDB_PASSWORD: password
-      COZY_ADMIN_PASSPHRASE: admin
-      INBOX_SECRET: secret
-      OUTBOX_SECRET: secret
+      #COUCHDB_PASSWORD: password
+      #COZY_ADMIN_PASSPHRASE: admin
+      #INBOX_SECRET: secret
+      #OUTBOX_SECRET: secret
     extra_hosts:
       - "auth.twake.local:172.27.0.100"
       - "user1.twake.local:172.27.0.100"
@@ -32,6 +34,12 @@ services:
       - ./config/change-features.sh:/usr/local/bin/change-features.sh
       - ./config/example-features.json:/usr/local/bin/example-features.json
       - ./config/example-shortcut.json:/usr/local/bin/example-shortcut.json
+    healthcheck:
+      test: ["CMD-SHELL", "[ \"$(curl -fsSL http://localhost:8080/status | jq -r .status)\" = \"OK\" ] || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 4
+      start_period: 10s  
     networks:
       - twake-network  
   patcher-cozy:
@@ -44,7 +52,7 @@ services:
       - cozy-stack  
     environment:
       - CONTAINER=cozyt   
-      #- ENABLE_APPS="mail,calendar,meet"
+      - ENABLE_APPS="mail,linshare,notes"
     volumes:
       - ./scripts:/scripts
       - /var/run/docker.sock:/var/run/docker.sock

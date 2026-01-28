@@ -11,6 +11,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.newcalendar.rule=Host(`calendar-ng.twake.local`)" 
       - "traefik.http.services.newcalendar.loadbalancer.server.port=80"
+      
 
   tcalendar-side-service:
     build: .
@@ -101,19 +102,20 @@ services:
     restart: unless-stopped
     networks:
       - twake-network
-
+    env_file:
+      - ./secret.env
     environment:
       - SABRE_ENV=dev
-      - ESN_MONGO_URI=mongoroot:password@mongodb:27017/esn_docker?authSource=admin
-      - SABRE_MONGO_URI=mongoroot:password@mongodb:27017/sabre?authSource=admin
+      #- ESN_MONGO_URI=mongoroot:password@mongodb:27017/esn_docker?authSource=admin
+      #- SABRE_MONGO_URI=mongoroot:password@mongodb:27017/sabre?authSource=admin
       - ESN_HOST=tcalendar-side-service.twake.local
       - ESN_PORT=80
       - AMQP_HOST=rabbitmq
       - AMQP_PORT=5672
       - AMQP_LOGIN=guest
-      - AMQP_PASSWORD=guest
+      #- AMQP_PASSWORD=guest
       - SABRE_ADMIN_LOGIN=admin
-      - SABRE_ADMIN_PASSWORD=secret123
+      #- SABRE_ADMIN_PASSWORD=secret123
       - SABRE_IMPERSONATION_ENABLED=true
     labels:
       - "traefik.enable=true"
