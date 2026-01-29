@@ -52,7 +52,7 @@ services:
       - cozy-stack  
     environment:
       - CONTAINER=cozyt   
-      - ENABLE_APPS="mail,linshare,notes"
+      - ENABLE_APPS="mail,linshare,calendar,meet,calendar-v2,contacts"
     volumes:
       - ./scripts:/scripts
       - /var/run/docker.sock:/var/run/docker.sock

@@ -49,7 +49,7 @@ create_instance() {
   else
     echo "➕ Creating instance \$DOMAIN"
     cozy-stack instances add \
-      --apps \"\$APPS_LIST\" \
+      --apps home,drive,notes,settings \
       --email \"\$EMAIL\" \
       --context-name default \
       "\$DOMAIN"
@@ -60,20 +60,23 @@ create_instance() {
 for user in $USERS; do
   DOMAIN=\$(echo "\$user" | cut -d: -f1).twake.local
   EMAIL=\$(echo "\$user" | cut -d: -f2)
-  create_instance "\$DOMAIN" "\$EMAIL" "\$APPS_LIST"
+  create_instance "\$DOMAIN" "\$EMAIL"
 done
 
-echo "▶ Applying feature flags..."
+
+
+echo "▶ Adding optional apps and Applying feature flags..."
 for DOMAIN in user1.twake.local user2.twake.local user3.twake.local; do
   if echo ",\$ENABLED_APPS," | grep -q ",linshare,"; then
+    echo "▶ Installing linshare app for \$DOMAIN"
+    cozy-stack apps install linshare --domain "\$DOMAIN"
     cozy-stack feature flags --domain "\$DOMAIN" \
       '{"linshare.embedded-app-url": "https://linshare.twake.local/new/"}'
   fi
-  #cozy-stack feature flags --domain "\$DOMAIN" \
-    #'{"linshare.embedded-app-url": "https://linshare.twake.local/new/"}'
-
 
   if echo ",\$ENABLED_APPS," | grep -q ",mail,"; then
+    echo "▶ Installing mail app for \$DOMAIN"
+    cozy-stack apps install mail --domain "\$DOMAIN"
     cozy-stack feature flags --domain "\$DOMAIN" \\
       '{"mail.embedded-app-url": "https://mail.twake.local"}'
   fi  
