@@ -6,15 +6,16 @@ services:
     volumes:
       - ./config/lmConf-1.json:/var/lib/lemonldap-ng/conf/lmConf-1.json
     environment:
-      - SSODOMAIN=twake.local
+      - SSODOMAIN=${BASE_DOMAIN}
+      - LDAP_BASE_DN=${LDAP_BASE_DN}
       - LOGLEVEL=debug
       - PROTECTION=none
-      - PORTAL=https://auth.twake.local
+      - PORTAL=https://auth.${BASE_DOMAIN}
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.lemonldap-auth.rule=Host(`auth.twake.local`)"  
+      - "traefik.http.routers.lemonldap-auth.rule=Host(`auth.${BASE_DOMAIN}`)"  
       - "traefik.http.services.lemonldap.loadbalancer.server.port=80"
-      - "traefik.http.routers.lemonldap-man.rule=Host(`manager.twake.local`)"  
+      - "traefik.http.routers.lemonldap-man.rule=Host(`manager.${BASE_DOMAIN}`)"  
     restart: unless-stopped
 
     networks:
@@ -29,7 +30,7 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.traefik.rule=Host(`traefik.twake.local`)"
+      - "traefik.http.routers.traefik.rule=Host(`traefik.${BASE_DOMAIN}`)"
       - "traefik.http.services.traefik.loadbalancer.server.port=8080"
       - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
 

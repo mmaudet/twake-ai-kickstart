@@ -5,7 +5,7 @@ services:
     env_file:
       - ./secrets/ldap.env
     environment:
-      LDAP_DOMAIN: "twake.local"
+      LDAP_DOMAIN: "${BASE_DOMAIN}"
       #LDAP_ADMIN_PASSWORD: admin
     volumes:
       - ldap_data:/var/lib/ldap
@@ -15,7 +15,7 @@ services:
       #- "389:389"
     command: ["--copy-service", "--loglevel", "debug"]
     healthcheck:
-      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost", "-b", "dc=twake,dc=local", "-D", "cn=admin,dc=twake,dc=local", "-w", "admin"]
+      test: ["CMD", "ldapsearch", "-x", "-H", "ldap://localhost", "-b", "${LDAP_BASE_DN}", "-D", "cn=admin,${LDAP_BASE_DN}", "-w", "admin"]
       interval: 30s
       timeout: 10s
       retries: 5
