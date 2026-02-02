@@ -24,9 +24,9 @@ jwt.privatekeypem.url=file:///root/conf/jwt_privatekey
 
 # Gives an URL for OpenID discovery being exposed on .well-known/webfinger endpoint
 # CF https://openid.net/specs/openid-connect-discovery-1_0.html
-oidc.provider.url=https://auth.twake.local
-websocket.url.prefix=wss://jmap.twake.local
-url.prefix=https://jmap.twake.local
+oidc.provider.url=https://auth.${BASE_DOMAIN}/
+websocket.url.prefix=wss://jmap.${BASE_DOMAIN}
+url.prefix=https://jmap.${BASE_DOMAIN}
 dynamic.jmap.prefix.resolution.enabled=true
 
 # OIDC configuration
@@ -52,4 +52,4 @@ calendarEvent.reply.supportedLanguages=en,fr
 emailRecoveryAction.maxEmailRecoveryPerRequest=1000000
 emailRecoveryAction.restorationHorizon=15d
 websocket.ping.interval=20
-support.httpLink=https://twake.local/support
+support.httpLink=https://${BASE_DOMAIN}/support

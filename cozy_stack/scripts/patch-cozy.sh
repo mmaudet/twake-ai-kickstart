@@ -5,7 +5,7 @@ set -e
 CONTAINER="${CONTAINER:-cozyt}"
 
 # List of users as plain space-separated string
-USERS="user1:user1@twake.local user2:user2@twake.local user3:user3@twake.local"
+USERS="user1:user1@$BASE_DOMAIN user2:user2@$BASE_DOMAIN user3:user3@$BASE_DOMAIN"
 
 ENABLE_APPS="${ENABLE_APPS:-}"
 ENABLE_APPS=$(echo "$ENABLE_APPS" | sed 's/"//g')
@@ -58,7 +58,7 @@ create_instance() {
 
 # Loop over users using plain sh
 for user in $USERS; do
-  DOMAIN=\$(echo "\$user" | cut -d: -f1).twake.local
+  DOMAIN=\$(echo "\$user" | cut -d: -f1).\$BASE_DOMAIN
   EMAIL=\$(echo "\$user" | cut -d: -f2)
   create_instance "\$DOMAIN" "\$EMAIL"
 done
@@ -66,19 +66,19 @@ done
 
 
 echo "▶ Adding optional apps and Applying feature flags..."
-for DOMAIN in user1.twake.local user2.twake.local user3.twake.local; do
+for DOMAIN in user1.$BASE_DOMAIN user2.$BASE_DOMAIN user3.$BASE_DOMAIN; do
   if echo ",\$ENABLED_APPS," | grep -q ",linshare,"; then
     echo "▶ Installing linshare app for \$DOMAIN"
     cozy-stack apps install linshare --domain "\$DOMAIN"
     cozy-stack feature flags --domain "\$DOMAIN" \
-      '{"linshare.embedded-app-url": "https://linshare.twake.local/new/"}'
+      '{"linshare.embedded-app-url": "https://linshare.$BASE_DOMAIN/new/"}'
   fi
 
   if echo ",\$ENABLED_APPS," | grep -q ",mail,"; then
     echo "▶ Installing mail app for \$DOMAIN"
     cozy-stack apps install mail --domain "\$DOMAIN"
     cozy-stack feature flags --domain "\$DOMAIN" \\
-      '{"mail.embedded-app-url": "https://mail.twake.local"}'
+      '{"mail.embedded-app-url": "https://mail.$BASE_DOMAIN"}'
   fi  
 
   cozy-stack feature flags --domain "\$DOMAIN" \
@@ -93,7 +93,7 @@ cozy-stack features defaults \
   '{"drive.office": {"enabled": true, "write": true}}'
 
 # echo "▶ Creating shortcuts..."
-# for DOMAIN in user1.twake.local user2.twake.local user3.twake.local; do
+# for DOMAIN in user1.$BASE_DOMAIN user2.$BASE_DOMAIN user3.$BASE_DOMAIN; do
 #   /usr/local/bin/create-shortcut.sh \
 #     "\$DOMAIN" \
 #     /usr/local/bin/example-shortcut.json \

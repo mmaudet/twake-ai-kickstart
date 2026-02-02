@@ -7,15 +7,14 @@ source ../.env
 set +a
 
 # Process configuration
-echo "Processing ldap configuration..."
-envsubst '$BASE_DOMAIN $LDAP_BASE_DN' < ldap/bootstrap/users.ldif.template > ldap/bootstrap/users.ldif
+echo "Processing configuration..."
+envsubst '$BASE_DOMAIN' < ./config/nginx.conf.template > config/nginx.conf
 
 # Check if file was created
-if [ ! -f "ldap/bootstrap/users.ldif" ]; then
+if [ ! -f "config/nginx.conf" ]; then
     echo "Failed to create configuration file"
     exit 1
 fi
-
 
 echo "Starting Docker Compose..."
 

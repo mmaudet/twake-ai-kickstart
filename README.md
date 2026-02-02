@@ -63,62 +63,70 @@ docker network create twake-network --subnet=172.27.0.0/16
 ### 2. Start Services
 It is recommended to start the components in the following order to ensure dependencies (databases, auth) are ready before the applications.
 
+- In order to pull Linshare components, you need to be logged in to Linagora Docker registry.
+- Modify the .env file to update the domain name.
+
 #### Step 1: Start Databases
-In order to pull Linshare components, you need to be logged in to Linagora Docker registry.
-Navigate to the database directory and start the services:
+
+- Navigate to the database directory and start the services:
 ```bash
 cd twake_db
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
 
 #### Step 2: Start Authentication & Proxy Layer
 ```bash
 cd twake_auth
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
 
 #### Step 3: Start Meet Application
 ```bash
 cd meet_app
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
 
 #### Step 4: Start LinShare Application
 ```bash
 cd linshare_app
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
 
 #### Step 5: Start OnlyOffice Application
 ```bash
 cd onlyoffice_app
-docker compose up -d
+docker compose --env-file ../.env  up -d
 cd ..
 ```
 #### Step 6: Start Calendar Application
 ```bash
 cd calendar_app
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
 #### Step 7: Start TMail Application
 ```bash
 cd tmail_app
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
 
 #### Step 8: Start Cozy Stack
 ```bash
 cd cozy_stack
-docker compose up -d
+./compose-wrapper.sh up -d
 cd ..
 ```
-
+#### Step 9: Start Chat Application
+```bash
+cd chat_app
+./compose-wrapper.sh up -d
+cd ..
+```
 
 
 ### 3. Verify Deployment

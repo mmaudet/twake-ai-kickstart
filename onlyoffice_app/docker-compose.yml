@@ -23,7 +23,7 @@ services:
 
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.onlyoffice.rule=Host(`onlyoffice.twake.local`)"
+      - "traefik.http.routers.onlyoffice.rule=Host(`onlyoffice.${BASE_DOMAIN}`)"
       - "traefik.http.routers.onlyoffice.entrypoints=websecure"
       - "traefik.http.routers.onlyoffice.tls=true"
       - "traefik.http.services.onlyoffice.loadbalancer.server.port=443" 
@@ -45,12 +45,12 @@ services:
        - /var/lib/onlyoffice/documentserver/App_Data/cache/files
        - /var/www/onlyoffice/documentserver-example/public/files
        - /usr/share/fonts
-       - ./config/root-ca.pem:/var/www/onlyoffice/Data/certs/root-ca.pem
-       - ./config/root-ca.key:/var/www/onlyoffice/Data/certs/root-ca.key
+       - ../twake_auth/traefik/ssl/root-ca.pem:/var/www/onlyoffice/Data/certs/root-ca.pem
+       - ../twake_auth/traefik/ssl/root-ca.key:/var/www/onlyoffice/Data/certs/root-ca.key
     extra_hosts:
-       - "user1.twake.local:172.27.0.100"
-       - "user2.twake.local:172.27.0.100"
-       - "user3.twake.local:172.27.0.100"  
+       - "user1.${BASE_DOMAIN}:172.27.0.100"
+       - "user2.${BASE_DOMAIN}:172.27.0.100"
+       - "user3.${BASE_DOMAIN}:172.27.0.100"  
     networks:
       - twake-network   
        

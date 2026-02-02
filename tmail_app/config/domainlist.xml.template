@@ -4,5 +4,5 @@
 <domainlist>
     <autodetect>false</autodetect>
     <autodetectIP>false</autodetectIP>
-    <defaultDomain>twake.local</defaultDomain>
+    <defaultDomain>${BASE_DOMAIN}</defaultDomain>
 </domainlist>

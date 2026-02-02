@@ -46,7 +46,7 @@ window.APP_CONFIGURATION = Object.freeze({
   oidcEnabled: true,
   oidcForceRedirection: true,
   oidcSetting: {
-    authority: 'https://auth.twake.local/',
+    authority: 'https://auth.${BASE_DOMAIN}/',
     client_id: 'linshare',
     client_secret: 'linshare',
     client_logo: 'linagora-logo-favicon.svg',

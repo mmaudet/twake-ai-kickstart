@@ -7,7 +7,7 @@
 <mailetcontainer enableJmx="true">
 
     <context>
-        <postmaster>postmaster@twake.local</postmaster>
+        <postmaster>postmaster@${BASE_DOMAIN}</postmaster>
     </context>
 
     <spooler>
@@ -18,8 +18,8 @@
     <processors>
         <processor state="root" enableJmx="true">
             <matcher name="forward-predicate" match="org.apache.james.mailetcontainer.impl.matchers.And">
-                <matcher match="SenderIs=eproc@twake.local"/>
-                <matcher notmatch="RecipientIs=eproc1@twake.local"/>
+                <matcher match="SenderIs=eproc@${BASE_DOMAIN}"/>
+                <matcher notmatch="RecipientIs=eproc1@${BASE_DOMAIN}"/>
             </matcher>
 
             <matcher name="user-mails-with-forbidden-attachments" match="org.apache.james.mailetcontainer.impl.matchers.And">
@@ -45,7 +45,7 @@
                 <processor>forbidden-attachments</processor>
             </mailet>
             <mailet match="forward-predicate" class="Forward">
-                <forwardTo>eproc1@twake.local</forwardTo>
+                <forwardTo>eproc1@${BASE_DOMAIN}</forwardTo>
                 <passThrough>true</passThrough>
             </mailet>
             <mailet match="All" class="ToProcessor">
@@ -99,8 +99,8 @@
                 <matcher match="org.apache.james.jmap.mailet.SentByJmap"/>
             </matcher>
             <matcher name="mail-to-all-users-matcher" match="org.apache.james.mailetcontainer.impl.matchers.And">
-                <matcher match="SenderIs=postmaster@twake.local"/>
-                <matcher match="RecipientIs=all@twake.local"/>
+                <matcher match="SenderIs=postmaster@${BASE_DOMAIN}"/>
+                <matcher match="RecipientIs=all@${BASE_DOMAIN}"/>
             </matcher>
             <mailet match="mail-to-all-users-matcher" class="MailToAllUsers"/>
             <mailet match="All" class="SplitMail">
@@ -220,8 +220,8 @@
             </matcher>
             <matcher name="should-check-spam" match="org.apache.james.mailetcontainer.impl.matchers.Not">
                 <matcher match="SMTPAuthSuccessful"/>
-                <matcher match="SenderDomainIs=twake.local"/>
-                <matcher match="SenderDomainIs=lists.twake.local"/>
+                <matcher match="SenderDomainIs=${BASE_DOMAIN}"/>
+                <matcher match="SenderDomainIs=lists.${BASE_DOMAIN}"/>
                 <matcher match="SentByMailet"/>
                 <matcher match="org.apache.james.jmap.mailet.SentByJmap"/>
             </matcher>
@@ -308,7 +308,7 @@
                 <gatewayPort>25</gatewayPort>
                 <debug>true</debug>
                 <startTLS>false</startTLS>
-                <heloName>smtps.twake.local</heloName>
+                <heloName>smtps.${BASE_DOMAIN}</heloName>
             </mailet>
         </processor>
 

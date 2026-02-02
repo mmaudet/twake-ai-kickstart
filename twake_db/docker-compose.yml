@@ -4,6 +4,7 @@ services:
     container_name: ldap
     env_file:
       - ./secrets/ldap.env
+      - ../.env
     environment:
       LDAP_DOMAIN: "${BASE_DOMAIN}"
       #LDAP_ADMIN_PASSWORD: admin

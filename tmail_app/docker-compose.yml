@@ -55,7 +55,7 @@ services:
       - "traefik.http.services.tmail-jmap.loadbalancer.server.port=9081"
       - "traefik.http.services.tmail-webadmin.loadbalancer.server.port=8000"
       # OIDC discovery → LemonLDAP (highest priority)
-      - "traefik.http.routers.mail-backend-oidc.rule=Host(`jmap.twake.local`) && Path(`/.well-known/openid-configuration`)"
+      - "traefik.http.routers.mail-backend-oidc.rule=Host(`jmap.${BASE_DOMAIN}`) && Path(`/.well-known/openid-configuration`)"
       - "traefik.http.routers.mail-backend-oidc.entrypoints=websecure"
       - "traefik.http.routers.mail-backend-oidc.tls=true"
       - "traefik.http.routers.mail-backend-oidc.priority=1000"
@@ -63,7 +63,7 @@ services:
       - "traefik.http.routers.mail-backend-oidc.middlewares=lemonldap-host"
 
       # WebFinger with OpenID query → LemonLDAP (priority 400)
-      - "traefik.http.routers.mail-backend-webfinger-openid.rule=Host(`jmap.twake.local`) && Path(`/.well-known/webfinger`) && Query(`rel=http://openid.net/specs/connect/1.0/issuer`)"
+      - "traefik.http.routers.mail-backend-webfinger-openid.rule=Host(`jmap.${BASE_DOMAIN}`) && Path(`/.well-known/webfinger`) && Query(`rel=http://openid.net/specs/connect/1.0/issuer`)"
       - "traefik.http.routers.mail-backend-webfinger-openid.entrypoints=websecure"
       - "traefik.http.routers.mail-backend-webfinger-openid.tls=true"
       - "traefik.http.routers.mail-backend-webfinger-openid.priority=400"
@@ -71,7 +71,7 @@ services:
       - "traefik.http.routers.mail-backend-webfinger-openid.middlewares=lemonldap-host"
 
       # JMAP .well-known/jmap endpoint (priority 500)
-      - "traefik.http.routers.mail-backend-jmap-wellknown.rule=Host(`jmap.twake.local`) && Path(`/.well-known/jmap`)"
+      - "traefik.http.routers.mail-backend-jmap-wellknown.rule=Host(`jmap.${BASE_DOMAIN}`) && Path(`/.well-known/jmap`)"
       - "traefik.http.routers.mail-backend-jmap-wellknown.entrypoints=websecure"
       - "traefik.http.routers.mail-backend-jmap-wellknown.tls=true"
       - "traefik.http.routers.mail-backend-jmap-wellknown.middlewares=cors-headers@file"
@@ -79,7 +79,7 @@ services:
       - "traefik.http.routers.mail-backend-jmap-wellknown.service=tmail-jmap"
 
       # JMAP /jmap endpoints (priority 300)
-      - "traefik.http.routers.mail-backend-jmap.rule=Host(`jmap.twake.local`) && PathPrefix(`/jmap`)"
+      - "traefik.http.routers.mail-backend-jmap.rule=Host(`jmap.${BASE_DOMAIN}`) && PathPrefix(`/jmap`)"
       - "traefik.http.routers.mail-backend-jmap.entrypoints=websecure"
       - "traefik.http.routers.mail-backend-jmap.tls=true"
       - "traefik.http.routers.mail-backend-jmap.middlewares=cors-headers@file"
@@ -87,7 +87,7 @@ services:
       - "traefik.http.routers.mail-backend-jmap.service=tmail-jmap"
       
       # WebFinger default (non-OpenID queries) → TMail Backend (priority 200)
-      - "traefik.http.routers.mail-backend-webfinger.rule=Host(`jmap.twake.local`) && Path(`/.well-known/webfinger`)"
+      - "traefik.http.routers.mail-backend-webfinger.rule=Host(`jmap.${BASE_DOMAIN}`) && Path(`/.well-known/webfinger`)"
       - "traefik.http.routers.mail-backend-webfinger.entrypoints=websecure"
       - "traefik.http.routers.mail-backend-webfinger.tls=true"
       - "traefik.http.routers.mail-backend-webfinger.middlewares=cors-headers@file"
@@ -95,14 +95,14 @@ services:
       - "traefik.http.routers.mail-backend-webfinger.service=tmail-jmap"
 
       # WebAdmin API (fallback, lowest priority)
-      - "traefik.http.routers.mail-backend-webadmin.rule=Host(`jmap.twake.local`) && PathPrefix(`/`)"
+      - "traefik.http.routers.mail-backend-webadmin.rule=Host(`jmap.${BASE_DOMAIN}`) && PathPrefix(`/`)"
       - "traefik.http.routers.mail-backend-webadmin.entrypoints=websecure"
       - "traefik.http.routers.mail-backend-webadmin.tls=true"
       - "traefik.http.routers.mail-backend-webadmin.middlewares=cors-headers@file"
       - "traefik.http.routers.mail-backend-webadmin.priority=1"
       - "traefik.http.routers.mail-backend-webadmin.service=tmail-webadmin"
       # Middleware definitions
-      - "traefik.http.middlewares.lemonldap-host.headers.customRequestHeaders.Host=jmap.twake.local"
+      - "traefik.http.middlewares.lemonldap-host.headers.customRequestHeaders.Host=jmap.${BASE_DOMAIN}"
     environment:
       - JAVA_TOOL_OPTIONS=
           -Xms2000m
@@ -136,7 +136,7 @@ services:
       - ./tmail-web-conf/app_dashboard.json:/usr/share/nginx/html/assets/configurations/app_dashboard.json
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mail-front.rule=Host(`mail.twake.local`)"
+      - "traefik.http.routers.mail-front.rule=Host(`mail.${BASE_DOMAIN}`)"
     depends_on:
       - tmail-backend
 

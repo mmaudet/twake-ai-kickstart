@@ -32,3 +32,4 @@ openssl x509 -req \
 
 echo "▶ Generating fullchain"
 cat traefik/ssl/twake-server.pem traefik/ssl/root-ca.pem > traefik/ssl/twake-server-fullchain.pem  
+cp traefik/ssl/root-ca.pem traefik/ssl/root-ca.crt

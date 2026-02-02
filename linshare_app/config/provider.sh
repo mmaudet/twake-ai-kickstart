@@ -2,7 +2,19 @@
 set -euo pipefail
 
 # Configuration
-BASE_URL="https://admin-linshare.twake.local/linshare/webservice/rest/admin/v5"
+BASE_URL="https://admin-linshare.${BASE_DOMAIN}/linshare/webservice/rest/admin/v5"
+
+echo "⏳ Waiting for LinShare admin API to be ready..."
+
+until curl -sk -o /dev/null -w "%{http_code}" \
+  -u "root@localhost.localdomain:adminlinshare" \
+  "$BASE_URL/domains" | grep -qE "200|401|403"; do
+  echo "… admin API not ready yet"
+  sleep 5
+done
+
+echo "✔ LinShare admin API is ready"
+
 
 # Create TOPDOMAIN
 echo "Creating TOPDOMAIN..."

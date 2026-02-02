@@ -3,12 +3,12 @@
 
 # Load environment variables
 set -a
-source .env
+source ../.env
 set +a
 
 # Process configuration
 echo "Processing LemonLDAP configuration..."
-envsubst < config/lmConf-1.json.template > config/lmConf-1.json
+envsubst '$BASE_DOMAIN $LDAP_BASE_DN' < ./config/lmConf-1.json.template > config/lmConf-1.json
 
 # Check if file was created
 if [ ! -f "config/lmConf-1.json" ]; then
@@ -22,4 +22,4 @@ echo "Creating  Certs..."
 echo "Starting Docker Compose..."
 
 # Pass all arguments to docker compose
-sudo docker compose "$@"
+sudo docker compose --env-file ../.env "$@"

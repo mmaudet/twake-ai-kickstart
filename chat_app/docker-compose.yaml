@@ -22,12 +22,14 @@ services:
     volumes:
       - ./synapse:/data
       - ./synapse/homeserver-postgres.yaml:/data/homeserver.yaml
-      - ./synapse/root-ca.crt:/usr/local/share/ca-certificates/root-ca.crt:ro
+      - ../twake_auth/traefik/ssl/root-ca.crt:/usr/local/share/ca-certificates/root-ca.crt:ro
     networks:
       - twake-network
+    extra_hosts:
+      - "auth.${BASE_DOMAIN}:172.27.0.100"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.synapse.rule=Host(`matrix.twake.local`)"
+      - "traefik.http.routers.synapse.rule=Host(`matrix.${BASE_DOMAIN}`)"
       - "traefik.http.routers.synapse.entrypoints=websecure"
       - "traefik.http.services.synapse.loadbalancer.server.port=8008"
 
@@ -43,9 +45,9 @@ services:
     environment:
       # - NODE_OPTIONS="--inspect=0.0.0.0:9229"
       - NODE_TLS_REJECT_UNAUTHORIZED=0
-      - SERVER_NAME=twake.local
-      - BASE_URL=https://tom.twake.local
-      - OIDC_ISSUER=https://auth.twake.local
+      - SERVER_NAME=${BASE_DOMAIN}
+      - BASE_URL=https://tom.${BASE_DOMAIN}
+      - OIDC_ISSUER=https://auth.${BASE_DOMAIN}
       - TRUSTED_PROXIES=uniquelocal
 
       - ADDITIONAL_FEATURES=true
@@ -69,7 +71,7 @@ services:
       - LDAP_PASSWORD=admin
 
       - MATRIX_INTERNAL_HOST=http://synapse:8008
-      - MATRIX_SERVER=matrix.twake.local
+      - MATRIX_SERVER=matrix.${BASE_DOMAIN}
       - MATRIX_DATABASE_ENGINE=pg
       - MATRIX_DATABASE_HOST=postgres
       - MATRIX_DATABASE_NAME=synapse
@@ -104,10 +106,10 @@ services:
       - LOG_TRANSPORTS=Console
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.tom.rule=Host(`tom.twake.local`)"
+      - "traefik.http.routers.tom.rule=Host(`tom.${BASE_DOMAIN}`)"
       - "traefik.http.routers.tom.entrypoints=websecure"
       - "traefik.http.services.tom.loadbalancer.server.port=3000"
-      - "traefik.http.routers.tomfromchat.rule=Host(`chat.twake.local`) && PathPrefix(`/_twake`)"
+      - "traefik.http.routers.tomfromchat.rule=Host(`chat.${BASE_DOMAIN}`) && PathPrefix(`/_twake`)"
       - "traefik.http.routers.tomfromchat.entrypoints=websecure"
       - "traefik.http.routers.tomfromchat.priority=100" 
 
@@ -126,8 +128,8 @@ services:
       # - NODE_OPTIONS="--inspect=0.0.0.0:9229"
       - NODE_TLS_REJECT_UNAUTHORIZED=0
 
-      - BASE_URL=https://fed.twake.local
-      - SERVER_NAME=twake.local
+      - BASE_URL=https://fed.${BASE_DOMAIN}
+      - SERVER_NAME=${BASE_DOMAIN}
       - TRUSTED_PROXIES=uniquelocal
       - TRUSTED_SERVERS_ADDRESSES=172.0.0.0/8
 
@@ -155,7 +157,7 @@ services:
       - LOG_TRANSPORTS=Console
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.fed.rule=Host(`fed.twake.local`)"
+      - "traefik.http.routers.fed.rule=Host(`fed.${BASE_DOMAIN}`)"
       - "traefik.http.routers.fed.entrypoints=websecure"
       - "traefik.http.services.fed.loadbalancer.server.port=3000"
 
@@ -168,13 +170,13 @@ services:
       - twake-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.chat-redirect.rule=Host(`chat.twake.local`) && Path(`/`)"
+      - "traefik.http.routers.chat-redirect.rule=Host(`chat.${BASE_DOMAIN}`) && Path(`/`)"
       - "traefik.http.routers.chat-redirect.entrypoints=websecure"
       - "traefik.http.routers.chat-redirect.middlewares=chat-redirect"
-      - "traefik.http.middlewares.chat-redirect.redirectregex.regex=^https://chat.twake.local/$"
-      - "traefik.http.middlewares.chat-redirect.redirectregex.replacement=https://chat.twake.local/web/"
+      - "traefik.http.middlewares.chat-redirect.redirectregex.regex=^https://chat.${BASE_DOMAIN}/$"
+      - "traefik.http.middlewares.chat-redirect.redirectregex.replacement=https://chat.${BASE_DOMAIN}/web/"
       - "traefik.http.middlewares.chat-redirect.redirectregex.permanent=true"
-      - "traefik.http.routers.chat.rule=Host(`chat.twake.local`) && PathPrefix(`/web`)"
+      - "traefik.http.routers.chat.rule=Host(`chat.${BASE_DOMAIN}`) && PathPrefix(`/web`)"
       - "traefik.http.routers.chat.entrypoints=websecure"
       - "traefik.http.services.chat.loadbalancer.server.port=80"
       

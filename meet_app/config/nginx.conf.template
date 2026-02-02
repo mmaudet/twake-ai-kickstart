@@ -1,12 +1,12 @@
 
 server {
-  listen 443 ssl;
-  server_name meet.twake.local;
+  listen 80;
+  server_name meet.${BASE_DOMAIN};
   #server_name localhost;
-  ssl_certificate     /etc/ssl/private/twake-server.pem;
-  ssl_certificate_key /etc/ssl/certs/twake-server.key;
+  #ssl_certificate     /etc/ssl/private/twake-server.pem;
+  #ssl_certificate_key /etc/ssl/certs/twake-server.key;
 
-  ssl_protocols TLSv1.2 TLSv1.3;
+  #ssl_protocols TLSv1.2 TLSv1.3;
   root /usr/share/nginx/html;
 
   location ^~ /api/ {

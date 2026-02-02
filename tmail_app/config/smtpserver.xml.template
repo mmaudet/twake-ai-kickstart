@@ -22,7 +22,7 @@
 
         <addressBracketsEnforcement>true</addressBracketsEnforcement>
         <smtpGreeting>Hello from Twake Mail</smtpGreeting>
-        <helloName autodetect="false">smtp.twake.local</helloName>
+        <helloName autodetect="false">smtp.${BASE_DOMAIN}</helloName>
         <authorizedAddresses>127.0.0.1,::1,172.16.0.0/12,192.168.0.0/16</authorizedAddresses>
         <handlerchain coreHandlersPackage="com.linagora.tmail.smtp.TMailCmdHandlerLoader">
         </handlerchain>
@@ -51,7 +51,7 @@
 
         <addressBracketsEnforcement>true</addressBracketsEnforcement>
         <smtpGreeting>Hello from Twake Mail</smtpGreeting>
-        <helloName autodetect="false">smtp.twake.local</helloName>
+        <helloName autodetect="false">smtp.${BASE_DOMAIN}</helloName>
         <handlerchain coreHandlersPackage="com.linagora.tmail.smtp.TMailCmdHandlerLoader">
             <handler class="com.linagora.tmail.smtp.TMailValidRcptHandler"/>
         </handlerchain>
@@ -79,7 +79,7 @@
         <maxExecutorCount>4</maxExecutorCount>
         <addressBracketsEnforcement>true</addressBracketsEnforcement>
         <smtpGreeting>Hello from Twake Mail</smtpGreeting>
-	    <helloName autodetect="false">smtp.twake.local</helloName>
+	    <helloName autodetect="false">smtp.${BASE_DOMAIN}</helloName>
         <handlerchain coreHandlersPackage="com.linagora.tmail.smtp.TMailCmdHandlerLoader">
             <handler class="com.linagora.tmail.smtp.TMailValidRcptHandler"/>
         </handlerchain>

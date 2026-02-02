@@ -7,7 +7,7 @@ services:
         volumes:
             - linshare_data:/var/lib/linshare
             - ./config/backend/log4j.properties:/etc/linshare/log4j.properties
-            - ./config/root-ca.pem:/new-ca/root-ca.pem
+            - ../twake_auth/traefik/ssl/root-ca.pem:/new-ca/root-ca.pem
             - ./config/backend/linshare.extra.properties:/etc/linshare/linshare.extra.properties            
         healthcheck:
             test: ["CMD", "curl", "-s", "-f", "http://localhost:8080/linshare/"]
@@ -67,16 +67,16 @@ services:
             - backend-linshare
         labels:
           - "traefik.enable=true"
-          - "traefik.http.routers.linshare-http.rule=Host(`linshare.twake.local`)"
+          - "traefik.http.routers.linshare-http.rule=Host(`linshare.${BASE_DOMAIN}`)"
           - "traefik.http.routers.linshare-http.entrypoints=web"
-          - "traefik.http.routers.user.rule=Host(`linshare.twake.local`)"
+          - "traefik.http.routers.user.rule=Host(`linshare.${BASE_DOMAIN}`)"
           - "traefik.http.routers.user.entrypoints=websecure"
           - "traefik.http.routers.linshare-http.middlewares=redirect-to-https"
         environment:
-            - EXTERNAL_URL=linshare.twake.local
+            - EXTERNAL_URL=linshare.${BASE_DOMAIN}
             - TOMCAT_URL=backend-linshare
             - TOMCAT_PORT=8080
-            - LINSHARE_FRAME_ANCESTOR=https://*.twake.local
+            - LINSHARE_FRAME_ANCESTOR=https://*.${BASE_DOMAIN}
         volumes:
           - ./config/user-ui/config.js:/usr/local/apache2/htdocs/linshare-ui-user/new/config/config.js
           - ./config/user-ui/linshare-ui-user.conf:/usr/local/apache2/conf/extra/linshare-ui-user.conf    
@@ -96,9 +96,9 @@ services:
             - backend-linshare
         labels:
           - "traefik.enable=true"
-          - "traefik.http.routers.admin.rule=Host(`admin-linshare.twake.local`)"
+          - "traefik.http.routers.admin.rule=Host(`admin-linshare.${BASE_DOMAIN}`)"
         environment:
-            - EXTERNAL_URL=admin-linshare.twake.local
+            - EXTERNAL_URL=admin-linshare.${BASE_DOMAIN}
             - TOMCAT_URL=backend-linshare
             - TOMCAT_PORT=8080
         networks:
@@ -107,12 +107,12 @@ services:
       container_name: linshare_ui-upload-request
       image: docker-registry.linagora.com:5000/linshare-snapshots/linshare-ui-upload-request:6.5.3
       environment:
-        - EXTERNAL_URL=upload-request-linshare.twake.local
+        - EXTERNAL_URL=upload-request-linshare.${BASE_DOMAIN}
         - TOMCAT_URL=backend-linshare
         - TOMCAT_PORT=8080
       labels:
         - "traefik.enable=true"
-        - "traefik.http.routers.uploadrequest.rule=Host(`upload-request-linshare.twake.local`)"
+        - "traefik.http.routers.uploadrequest.rule=Host(`upload-request-linshare.${BASE_DOMAIN}`)"
       networks:
             - twake-network
     clamav:
