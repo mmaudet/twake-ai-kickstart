@@ -66,7 +66,7 @@ services:
       - USERDB_ENGINE=ldap
       - LDAP_URI=ldap://ldap
       - LDAP_BASE=ou=users,dc=twake,dc=local
-      - LDAP_FILTER=(&(|(uid=$user)(mail=$user))(objectClass=inetOrgPerson))
+      - LDAP_FILTER=(objectClass=inetOrgPerson)
       - LDAP_USER=cn=admin,dc=twake,dc=local
       - LDAP_PASSWORD=admin
 
