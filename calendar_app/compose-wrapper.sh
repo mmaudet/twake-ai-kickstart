@@ -1,11 +1,17 @@
 #!/bin/bash
 # compose-wrapper.sh
 
+set -e
+
+ACTION="$1"
+
 # Load environment variables
 set -a
 source ../.env
 set +a
 set -euo pipefail
+
+if [ "$ACTION" = "up" ]; then
 # Process configuration
 echo "Processing configuration..."
 envsubst '$BASE_DOMAIN' < ./conf-side-service/configuration.properties.template > ./conf-side-service/configuration.properties
@@ -35,12 +41,16 @@ if [ ! -f "./frontend/env.js" ]; then
     echo "Failed to create configuration file"
     exit 1
 fi
+fi
 
-
-echo "Starting Docker Compose..."
 
 # Pass all arguments to docker compose
 sudo docker compose --env-file ../.env "$@"
+
+# 🚨 Everything below is UP-only
+if [ "$ACTION" != "up" ]; then
+  exit 0
+fi
 
 CONTAINER="tcalendar-side-service"
 CA_ALIAS="twake-root-ca"

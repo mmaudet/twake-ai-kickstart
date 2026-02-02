@@ -14,11 +14,14 @@ REPOS=(
     ["onlyoffice_app"]="${BASE_DIR}/onlyoffice_app"
     ["linshare_app"]="${BASE_DIR}/linshare_app"
     ["meet_app"]="${BASE_DIR}/meet_app"
+    ["calendar_app"]="${BASE_DIR}/calendar_app"
+    ["chat_app"]="${BASE_DIR}/chat_app"
+    ["tmail_app"]="${BASE_DIR}/tmail_app"
 )
 
 # Order of operations
-START_ORDER=("twake_db" "twake_auth" "cozy_stack" "onlyoffice_app" "linshare_app" "meet_app")
-STOP_ORDER=("meet_app" "linshare_app" "onlyoffice_app" "cozy_stack" "twake_auth" "twake_db")
+START_ORDER=("twake_db" "twake_auth" "cozy_stack" "onlyoffice_app" "linshare_app" "meet_app" "calendar_app" "chat_app" "tmail_app")
+STOP_ORDER=("tmail_app" "chat_app" "calendar_app" "meet_app" "linshare_app" "onlyoffice_app" "cozy_stack" "twake_auth" "twake_db")
 
 show_help() {
     echo "Usage: $0 <up|down> [repo] [service] [docker-compose options]"
@@ -37,14 +40,14 @@ show_help() {
 wait_for_repo_health() {
     echo "⏳ Waiting for all containers in repo '$1' to be healthy..."
 
-    containers=$(docker compose --env-file ../.env ps -q)
+    containers=$(sudo docker compose --env-file ../.env ps -q)
     if [[ -z "$containers" ]]; then
         echo "⚠️ No containers found for $1"
         return
     fi
 
     for c in $containers; do
-        name=$(docker inspect --format '{{.Name}}' "$c" | cut -d/ -f2)
+        name=$(sudo docker inspect --format '{{.Name}}' "$c" | cut -d/ -f2)
 
         # 👉 Skip patcher container
         if [[ "$name" == patcher-* ]]; then
@@ -53,7 +56,7 @@ wait_for_repo_health() {
         fi
 
         # Check if container has healthcheck
-        status=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")
+        status=$(sudo docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{end}}' "$c")
 
         if [[ -z "$status" ]]; then
             echo "ℹ️ Container '$name' has no healthcheck, skipping..."
@@ -61,7 +64,7 @@ wait_for_repo_health() {
         fi
 
         echo "⏳ Waiting for container '$name'..."
-        until [[ "$(docker inspect -f '{{.State.Health.Status}}' "$c")" == "healthy" ]]; do
+        until [[ "$(sudo docker inspect -f '{{.State.Health.Status}}' "$c")" == "healthy" ]]; do
             sleep 3
         done
         echo "✅ '$name' is healthy!"
@@ -96,9 +99,9 @@ run_repo() {
       fi
     else
       if [[ -n "$service" ]]; then
-        docker compose --env-file ../.env "$action" "${options[@]}" "$service"
+        sudo docker compose --env-file ../.env "$action" "${options[@]}" "$service"
       else
-        docker compose --env-file ../.env "$action" "${options[@]}"
+        sudo docker compose --env-file ../.env "$action" "${options[@]}"
       fi
     fi
 
