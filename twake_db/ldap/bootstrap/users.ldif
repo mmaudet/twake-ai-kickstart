@@ -1,7 +1,7 @@
 # ========================
 # Organizational Unit
 # ========================
-dn: ou=users,dc=workplace,dc=local
+dn: ou=users,dc=twake,dc=local
 objectClass: organizationalUnit
 ou: users
 
@@ -9,7 +9,7 @@ ou: users
 # ========================
 # Admin user
 # ========================
-dn: uid=admin,ou=users,dc=workplace,dc=local
+dn: uid=admin,ou=users,dc=twake,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -17,7 +17,8 @@ uid: admin
 cn: Admin Test
 sn: Test
 givenName: Admin Test
-mail: admin@workplace.local
+mail: admin@twake.local
+mobile: +21699123456
 userPassword: Admin@123
 uidNumber: 10000
 gidNumber: 10000
@@ -28,7 +29,7 @@ loginShell: /bin/bash
 # ========================
 # User 1
 # ========================
-dn: uid=user1,ou=users,dc=workplace,dc=local
+dn: uid=user1,ou=users,dc=twake,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -36,7 +37,8 @@ uid: user1
 cn: User One
 sn: One
 givenName: User One
-mail: user1@workplace.local
+mail: user1@twake.local
+mobile: +21622123456
 userPassword: user1
 uidNumber: 10001
 gidNumber: 10001
@@ -47,7 +49,7 @@ loginShell: /bin/bash
 # ========================
 # User 2
 # ========================
-dn: uid=user2,ou=users,dc=workplace,dc=local
+dn: uid=user2,ou=users,dc=twake,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -55,7 +57,8 @@ uid: user2
 cn: User Two
 sn: Two
 givenName: User Two
-mail: user2@workplace.local
+mail: user2@twake.local
+mobile: +21623123456
 userPassword: user2
 uidNumber: 10002
 gidNumber: 10002
@@ -66,7 +69,7 @@ loginShell: /bin/bash
 # ========================
 # User 3
 # ========================
-dn: uid=user3,ou=users,dc=workplace,dc=local
+dn: uid=user3,ou=users,dc=twake,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -74,7 +77,8 @@ uid: user3
 cn: User Three
 sn: Three
 givenName: User Three
-mail: user3@workplace.local
+mail: user3@twake.local
+mobile: +21624123456
 userPassword: user3
 uidNumber: 10003
 gidNumber: 10003
@@ -85,14 +89,15 @@ loginShell: /bin/bash
 # ========================
 # Test user
 # ========================
-dn: uid=test,ou=users,dc=workplace,dc=local
+dn: uid=test,ou=users,dc=twake,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 uid: test
 cn: Test User
 sn: User
-mail: test@workplace.local
+mail: test@twake.local
+mobile: +21625123456
 userPassword: Test@123
 uidNumber: 10004
 gidNumber: 10004
@@ -103,17 +108,17 @@ loginShell: /bin/bash
 # ========================
 # DungPD user
 # ========================
-dn: uid=dungpd,ou=users,dc=workplace,dc=local
+dn: uid=dungpd,ou=users,dc=twake,dc=local
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 uid: dungpd
 cn: Dung Pham
 sn: Pham
-mail: dungpd@workplace.local
+mail: dungpd@twake.local
+mobile: +21626123456
 userPassword: Dungpd@123
 uidNumber: 10005
 gidNumber: 10005
 homeDirectory: /home/dungpd
 loginShell: /bin/bash
-

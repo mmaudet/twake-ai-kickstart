@@ -18,6 +18,7 @@ cn: Admin Test
 sn: Test
 givenName: Admin Test
 mail: admin@${BASE_DOMAIN}
+mobile: +21699123456
 userPassword: Admin@123
 uidNumber: 10000
 gidNumber: 10000
@@ -37,6 +38,7 @@ cn: User One
 sn: One
 givenName: User One
 mail: user1@${BASE_DOMAIN}
+mobile: +21622123456
 userPassword: user1
 uidNumber: 10001
 gidNumber: 10001
@@ -56,6 +58,7 @@ cn: User Two
 sn: Two
 givenName: User Two
 mail: user2@${BASE_DOMAIN}
+mobile: +21623123456
 userPassword: user2
 uidNumber: 10002
 gidNumber: 10002
@@ -75,6 +78,7 @@ cn: User Three
 sn: Three
 givenName: User Three
 mail: user3@${BASE_DOMAIN}
+mobile: +21624123456
 userPassword: user3
 uidNumber: 10003
 gidNumber: 10003
@@ -93,6 +97,7 @@ uid: test
 cn: Test User
 sn: User
 mail: test@${BASE_DOMAIN}
+mobile: +21625123456
 userPassword: Test@123
 uidNumber: 10004
 gidNumber: 10004
@@ -111,9 +116,9 @@ uid: dungpd
 cn: Dung Pham
 sn: Pham
 mail: dungpd@${BASE_DOMAIN}
+mobile: +21626123456
 userPassword: Dungpd@123
 uidNumber: 10005
 gidNumber: 10005
 homeDirectory: /home/dungpd
 loginShell: /bin/bash
-

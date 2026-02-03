@@ -147,7 +147,8 @@ oidc_providers:
         subject_claim: "sub"
         localpart_template: "{{ user.preferred_username }}"
         display_name_template: "{{ user.name }}"
-
+    auto_create_users: true
+    
 sso:
   client_whitelist:
     - https://chat.${BASE_DOMAIN}
@@ -194,3 +195,6 @@ auto_accept_invites:
   enabled: true
   only_for_direct_messages: true
   only_from_local_users: true
+
+
+

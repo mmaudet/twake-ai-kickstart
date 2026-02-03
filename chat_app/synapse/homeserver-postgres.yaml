@@ -9,8 +9,8 @@
 # For more information on how to configure Synapse, including a complete accounting of
 # each option, go to docs/usage/configuration/config_documentation.md or
 # https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html
-server_name: "workplace.local"
-public_baseurl: "https://matrix.workplace.local/"
+server_name: "twake.local"
+public_baseurl: "https://matrix.twake.local/"
 
 pid_file: /data/homeserver.pid
 
@@ -133,7 +133,7 @@ oidc_providers:
   - idp_id: twake
     idp_name: Connect with Twake
     enabled: true
-    issuer: "https://auth.workplace.local/"
+    issuer: "https://auth.twake.local/"
     client_id: "matrix1"
     client_secret: "matrix1"
     scopes: ["openid", "profile", "email", "phone"]
@@ -147,10 +147,11 @@ oidc_providers:
         subject_claim: "sub"
         localpart_template: "{{ user.preferred_username }}"
         display_name_template: "{{ user.name }}"
-
+    auto_create_users: true
+    
 sso:
   client_whitelist:
-    - https://chat.workplace.local
+    - https://chat.twake.local
   update_profile_information: true
 
 # Whether to allow non server admin to create groups on this server
@@ -169,7 +170,7 @@ federation_verify_certificates: false
 # TODO: identity_server integration
 # * invite_client_location
 # * account_threepid_delegates
-default_identity_server: https://tom.workplace.local
+default_identity_server: https://tom.twake.local
 
 ### Matrix Synapse's scalability part - using workers
 # instance_map:
@@ -194,3 +195,6 @@ auto_accept_invites:
   enabled: true
   only_for_direct_messages: true
   only_from_local_users: true
+
+
+

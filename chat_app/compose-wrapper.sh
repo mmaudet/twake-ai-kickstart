@@ -12,7 +12,7 @@ if [ "$ACTION" = "up" ]; then
 # Process configuration
 echo "Processing configuration..."
 envsubst '$BASE_DOMAIN $LDAP_BASE_DN' < ./synapse/.env.template > ./synapse/.env
-envsubst '$BASE_DOMAIN' < ./synapse/homeserver-postgres.yaml.template > ./synapse/homeserver-postgres.yaml
+envsubst '$BASE_DOMAIN $LDAP_BASE_DN' < ./synapse/homeserver-postgres.yaml.template > ./synapse/homeserver-postgres.yaml
 envsubst '$BASE_DOMAIN' < ./synapse/wellknownclient.conf.template > ./synapse/wellknownclient.conf
 envsubst '$BASE_DOMAIN' < ./synapse/wellknownserver.conf.template > ./synapse/wellknownserver.conf
 envsubst '$BASE_DOMAIN' < ./chat/config.json.template > ./chat/config.json
