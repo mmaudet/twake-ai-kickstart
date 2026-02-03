@@ -21,7 +21,7 @@
                "display" : "auto",
                "logo" : "demo.png",
                "name" : "Application Test 1",
-               "uri" : "http://test1.twake.local/"
+               "uri" : "http://test1.workplace.local/"
             },
             "type" : "application"
          },
@@ -31,7 +31,7 @@
                "display" : "auto",
                "logo" : "thumbnail.png",
                "name" : "Application Test 2",
-               "uri" : "http://test2.twake.local/"
+               "uri" : "http://test2.workplace.local/"
             },
             "type" : "application"
          },
@@ -45,7 +45,7 @@
                "display" : "auto",
                "logo" : "configure.png",
                "name" : "WebSSO Manager",
-               "uri" : "http://manager.twake.local/manager.html"
+               "uri" : "http://manager.workplace.local/manager.html"
             },
             "type" : "application"
          },
@@ -55,7 +55,7 @@
                "display" : "auto",
                "logo" : "database.png",
                "name" : "Notifications Explorer",
-               "uri" : "http://manager.twake.local/notifications.html"
+               "uri" : "http://manager.workplace.local/notifications.html"
             },
             "type" : "application"
          },
@@ -65,7 +65,7 @@
                "display" : "auto",
                "logo" : "database.png",
                "name" : "Sessions Explorer",
-               "uri" : "http://manager.twake.local/sessions.html"
+               "uri" : "http://manager.workplace.local/sessions.html"
             },
             "type" : "application"
          },
@@ -79,7 +79,7 @@
                "display" : "on",
                "logo" : "help.png",
                "name" : "Local documentation",
-               "uri" : "http://manager.twake.local/doc/"
+               "uri" : "http://manager.workplace.local/doc/"
             },
             "type" : "application"
          },
@@ -187,14 +187,14 @@
       "uid" : "uid"
    },
    "displaySessionId" : 1,
-   "domain" : "twake.local",
+   "domain" : "workplace.local",
    "eventQueueName" : "llng_events",
    "exportedHeaders" : {
-      "test1.twake.local" : {
+      "test1.workplace.local" : {
          "Auth-Groups" : "$groups",
          "Auth-User" : "$uid"
       },
-      "test2.twake.local" : {
+      "test2.workplace.local" : {
          "Auth-Groups" : "$groups",
          "Auth-User" : "$uid"
       }
@@ -263,7 +263,7 @@
    "krbAuthnLevel" : 3,
    "krbRemoveDomain" : 1,
    "ldapAuthnLevel" : 2,
-   "ldapBase" : "ou=users,dc=twake,dc=local",
+   "ldapBase" : "ou=users,dc=workplace,dc=local",
    "ldapExportedVars" : {
       "cn" : "cn",
       "givenName" : "givenName",
@@ -301,22 +301,22 @@
    },
    "locationDetectGeoIpLanguages" : "en, fr",
    "locationRules" : {
-      "auth.twake.local" : {
+      "auth.workplace.local" : {
          "(?#checkUser)^/checkuser" : "inGroup(\"timelords\")",
          "(?#errors)^/lmerror/" : "accept",
          "default" : "accept"
       },
-      "manager.twake.local" : {
+      "manager.workplace.local" : {
          "(?#Configuration)^/(.*?\\.(fcgi|psgi)/)?(manager\\.html|confs|prx/|$)" : "inGroup(\"timelords\")",
          "(?#Notifications)/(.*?\\.(fcgi|psgi)/)?notifications" : "inGroup(\"timelords\") or $uid eq \"rtyler\"",
          "(?#Sessions)/(.*?\\.(fcgi|psgi)/)?sessions" : "inGroup(\"timelords\") or $uid eq \"rtyler\"",
          "default" : "inGroup(\"timelords\") or $uid eq \"rtyler\""
       },
-      "test1.twake.local" : {
+      "test1.workplace.local" : {
          "^/logout" : "logout_sso",
          "default" : "accept"
       },
-      "test2.twake.local" : {
+      "test2.workplace.local" : {
          "^/logout" : "logout_sso",
          "default" : "accept"
       }
@@ -338,7 +338,7 @@
    "mailFrom" : "noreply@example.com",
    "mailSessionKey" : "mail",
    "mailTimeout" : 0,
-   "managerDn" : "cn=admin,dc=twake,dc=local",
+   "managerDn" : "cn=admin,dc=workplace,dc=local",
    "managerPassword" : "admin",
    "max2FDevices" : 10,
    "max2FDevicesNameLength" : 20,
@@ -440,9 +440,9 @@
          "oidcRPMetaDataOptionsLogoutSessionRequired" : 0,
          "oidcRPMetaDataOptionsLogoutType" : "front",
          "oidcRPMetaDataOptionsNoJwtHeader" : 0,
-         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://calendar.twake.local/calendar https://contacts.twake.local/contacts https://account.twake.local/account https://calendar-ng.twake.local?logout=1",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://calendar.workplace.local/calendar https://contacts.workplace.local/contacts https://account.workplace.local/account https://calendar-ng.workplace.local?logout=1",
          "oidcRPMetaDataOptionsPublic" : 1,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://calendar.twake.local/calendar/auth/oidc/callback https://contacts.twake.local/contacts/auth/oidc/callback https://account.twake.local/account/auth/oidc/callback https://calendar-ng.twake.local/callback",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://calendar.workplace.local/calendar/auth/oidc/callback https://contacts.workplace.local/contacts/auth/oidc/callback https://account.workplace.local/account/auth/oidc/callback https://calendar-ng.workplace.local/callback",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
          "oidcRPMetaDataOptionsRefreshTokenRotation" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 1,
@@ -473,7 +473,7 @@
          "oidcRPMetaDataOptionsLogoutType" : "front",
          "oidcRPMetaDataOptionsNoJwtHeader" : 0,
          "oidcRPMetaDataOptionsPublic" : 1,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://matrix.twake.local/_synapse/client/oidc/callback",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://matrix.workplace.local/_synapse/client/oidc/callback",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
          "oidcRPMetaDataOptionsRefreshTokenRotation" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 1,
@@ -503,9 +503,9 @@
          "oidcRPMetaDataOptionsLogoutType" : "front",
          "oidcRPMetaDataOptionsLogoutUrl" : "",
          "oidcRPMetaDataOptionsNoJwtHeader" : 0,
-         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://user2.twake.local",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://user2.workplace.local",
          "oidcRPMetaDataOptionsPublic" : 0,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://oauthcallback.twake.local/oidc/redirect",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://oauthcallback.workplace.local/oidc/redirect",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
          "oidcRPMetaDataOptionsRefreshTokenRotation" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 0,
@@ -529,11 +529,11 @@
          "oidcRPMetaDataOptionsLogoutBypassConfirm" : 0,
          "oidcRPMetaDataOptionsLogoutSessionRequired" : 1,
          "oidcRPMetaDataOptionsLogoutType" : "back",
-         "oidcRPMetaDataOptionsLogoutUrl" : "https://jmap.twake.local/add-revoked-token",
+         "oidcRPMetaDataOptionsLogoutUrl" : "https://jmap.workplace.local/add-revoked-token",
          "oidcRPMetaDataOptionsOfflineSessionExpiration" : 2592000,
-         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://mail.twake.local/logout-callback.html",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://mail.workplace.local/logout-callback.html",
          "oidcRPMetaDataOptionsPublic" : 1,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://mail.twake.local/login-callback.html",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://mail.workplace.local/login-callback.html",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 1,
          "oidcRPMetaDataOptionsUserInfoSignAlg" : ""
@@ -561,9 +561,9 @@
          "oidcRPMetaDataOptionsLogoutSessionRequired" : 0,
          "oidcRPMetaDataOptionsLogoutType" : "front",
          "oidcRPMetaDataOptionsNoJwtHeader" : 0,
-         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://linshare.twake.local/new/oidc/callback",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://linshare.workplace.local/new/oidc/callback",
          "oidcRPMetaDataOptionsPublic" : 1,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://linshare.twake.local/new/oidc/callback",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://linshare.workplace.local/new/oidc/callback",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
          "oidcRPMetaDataOptionsRefreshTokenRotation" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 1,
@@ -591,11 +591,11 @@
          "oidcRPMetaDataOptionsLogoutEncContentEncAlg" : "A256GCM",
          "oidcRPMetaDataOptionsLogoutSessionRequired" : 0,
          "oidcRPMetaDataOptionsLogoutType" : "front",
-         "oidcRPMetaDataOptionsLogoutUrl" : "https://meet.twake.local/api/v1.0/logout-callback/",
+         "oidcRPMetaDataOptionsLogoutUrl" : "https://meet.workplace.local/api/v1.0/logout-callback/",
          "oidcRPMetaDataOptionsNoJwtHeader" : 0,
-         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://meet.twake.local/api/v1.0/logout-callback/",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://meet.workplace.local/api/v1.0/logout-callback/",
          "oidcRPMetaDataOptionsPublic" : 0,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://meet.twake.local/api/v1.0/callback/",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://meet.workplace.local/api/v1.0/callback/",
          "oidcRPMetaDataOptionsRefreshToken" : 1,
          "oidcRPMetaDataOptionsRefreshTokenRotation" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 0,
@@ -694,7 +694,7 @@
       "LockDirectory" : "/var/lib/lemonldap-ng/psessions/lock"
    },
    "port" : -1,
-   "portal" : "https://auth.twake.local/",
+   "portal" : "https://auth.workplace.local/",
    "portalAntiFrame" : 1,
    "portalCheckLogins" : 1,
    "portalDisplayAppslist" : 1,
@@ -731,7 +731,7 @@
    "registerTimeout" : 0,
    "reloadTimeout" : 5,
    "reloadUrls" : {
-      "localhost" : "http://reload.twake.local/reload"
+      "localhost" : "http://reload.workplace.local/reload"
    },
    "rememberAuthChoiceRule" : 0,
    "rememberCookieName" : "llngrememberauthchoice",
@@ -739,8 +739,8 @@
    "rememberTimer" : 5,
    "remoteGlobalStorage" : "Lemonldap::NG::Common::Apache::Session::SOAP",
    "remoteGlobalStorageOptions" : {
-      "ns" : "http://auth.twake.local/Lemonldap/NG/Common/PSGI/SOAPService",
-      "proxy" : "http://auth.twake.local/sessions"
+      "ns" : "http://auth.workplace.local/Lemonldap/NG/Common/PSGI/SOAPService",
+      "proxy" : "http://auth.workplace.local/sessions"
    },
    "requireToken" : 1,
    "rest2fActivation" : 0,
@@ -774,7 +774,7 @@
    "samlNameIDFormatMapX509" : "mail",
    "samlOrganizationDisplayName" : "Example",
    "samlOrganizationName" : "Example",
-   "samlOrganizationURL" : "http://www.twake.local",
+   "samlOrganizationURL" : "http://www.workplace.local",
    "samlOverrideIDPEntityID" : "",
    "samlRelayStateTimeout" : 600,
    "samlSPMetaDataExportedAttributes" : null,

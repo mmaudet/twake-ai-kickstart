@@ -104,6 +104,8 @@ services:
 
       - LOG_LEVEL=silly
       - LOG_TRANSPORTS=Console
+    extra_hosts:
+      - "matrix.${BASE_DOMAIN}:172.27.0.100"  
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tom.rule=Host(`tom.${BASE_DOMAIN}`)"
