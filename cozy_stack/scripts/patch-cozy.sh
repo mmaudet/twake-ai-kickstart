@@ -93,11 +93,17 @@ for DOMAIN in user1.$BASE_DOMAIN user2.$BASE_DOMAIN user3.$BASE_DOMAIN; do
 
   cozy-stack feature flags --domain "\$DOMAIN" \
     '{"home.apps.only-one-list": "true"}'
+
+  cozy-stack feature flags --domain "\$DOMAIN" \
+    '{"apps.hidden": "settings"}'  
 done
 
 echo "▶ Applying global feature defaults..."
 cozy-stack features defaults \
   '{"drive.office": {"enabled": true, "write": true}}'
+
+cozy-stack features defaults \
+  '{"home.wallpaper-personalization": {"enabled": true}}'   
 
 # echo "▶ Creating shortcuts..."
 # for DOMAIN in user1.$BASE_DOMAIN user2.$BASE_DOMAIN user3.$BASE_DOMAIN; do

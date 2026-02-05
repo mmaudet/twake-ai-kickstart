@@ -17,6 +17,8 @@ services:
       - "traefik.http.services.lemonldap.loadbalancer.server.port=80"
       - "traefik.http.routers.lemonldap-man.rule=Host(`manager.${BASE_DOMAIN}`)"  
     restart: unless-stopped
+    extra_hosts:
+      - "oauthcallback.${BASE_DOMAIN}:172.27.0.100"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
