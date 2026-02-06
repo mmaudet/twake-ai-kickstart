@@ -14,7 +14,7 @@ set -euo pipefail
 if [ "$ACTION" = "up" ]; then
 # Process configuration
 echo "Processing configuration..."
-envsubst '$BASE_DOMAIN' < ./conf-side-service/configuration.properties.template > ./conf-side-service/configuration.properties
+envsubst '$BASE_DOMAIN $MAIL_DOMAIN' < ./conf-side-service/configuration.properties.template > ./conf-side-service/configuration.properties
 envsubst '$BASE_DOMAIN' < ./frontend/account/openpaas.js.template > ./frontend/account/openpaas.js
 envsubst '$BASE_DOMAIN' < ./frontend/calendar/openpaas.js.template > ./frontend/calendar/openpaas.js
 envsubst '$BASE_DOMAIN' < ./frontend/contacts/openpaas.js.template > ./frontend/contacts/openpaas.js

@@ -115,7 +115,7 @@ objectClass: shadowAccount
 uid: dungpd
 cn: Dung Pham
 sn: Pham
-mail: dungpd@twake.locals
+mail: dungpd@twake.local
 mobile: +21626123456
 userPassword: Dungpd@123
 uidNumber: 10005

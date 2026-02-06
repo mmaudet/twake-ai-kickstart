@@ -19,8 +19,6 @@ services:
             - twake-network    
         extra_hosts:
             - "auth.${BASE_DOMAIN}:172.27.0.100"    
-        env_file:
-            - ./config/backend.env 
         environment:
             # These variables are mandatory
             - SMTP_HOST=linshare_mail
@@ -29,12 +27,12 @@ services:
             - POSTGRES_HOST=postgres
             - POSTGRES_PORT=5432
             - POSTGRES_USER=linshare
-            #- POSTGRES_PASSWORD=linshare
+            - POSTGRES_PASSWORD=linshare
             - CLAMAV_PORT=3310
             - MONGODB_DATA_REPLICA_SET=mongodb:27017
             - MONGODB_SMALLFILES_REPLICA_SET=mongodb:27017
             - MONGODB_USER=mongoroot
-            #- MONGODB_PASSWORD=password
+            - MONGODB_PASSWORD=password
             - THUMBNAIL_ENABLE=true
             - START_DEBUG=1
             - DEBUG=1

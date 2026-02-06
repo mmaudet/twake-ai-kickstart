@@ -49,7 +49,7 @@ create_instance() {
   else
     echo "➕ Creating instance \$DOMAIN"
     cozy-stack instances add \
-      --apps home,drive,notes,settings \
+      --apps home,drive,notes,settings,dataproxy \
       --email \"\$EMAIL\" \
       --context-name default \
       "\$DOMAIN"
@@ -95,7 +95,7 @@ for DOMAIN in user1.$BASE_DOMAIN user2.$BASE_DOMAIN user3.$BASE_DOMAIN; do
     '{"home.apps.only-one-list": "true"}'
 
   cozy-stack feature flags --domain "\$DOMAIN" \
-    '{"apps.hidden": "settings"}'  
+    '{"apps.hidden": ["dataproxy", "settings"]}'  
 done
 
 echo "▶ Applying global feature defaults..."

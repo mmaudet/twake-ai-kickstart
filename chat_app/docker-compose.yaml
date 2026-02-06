@@ -6,6 +6,8 @@ services:
       - ./synapse:/data
     command: sh -c "chown -R 991:991 /data/media_store && chmod -R u+rwX /data/media_store"
     restart: "no"
+    networks:
+      - twake-network
 
   synapse:
     image: matrixdotorg/synapse:v1.119.0

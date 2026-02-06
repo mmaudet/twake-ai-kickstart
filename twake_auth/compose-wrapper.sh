@@ -27,3 +27,33 @@ fi
 
 sudo docker compose --env-file ../.env "$@"
 
+if [ "$ACTION" != "up" ]; then
+  exit 0
+fi
+
+while true; do
+  STATUS=$(sudo docker inspect \
+    --format='{{if .State.Health}}{{.State.Health.Status}}{{end}}' \
+    "lemonldap-ng" 2>/dev/null || echo "starting")
+
+  case "$STATUS" in
+    healthy)
+      echo "✔ Lemonldap is healthy"
+      break
+      ;;
+    unhealthy)
+      echo "❌ Lemonldap is unhealthy"
+      exit 1
+      ;;
+    ""|starting)
+      echo "… Lemonldap status: starting"
+      sleep 4
+      ;;
+    *)
+      echo "… Lemonldap status: $STATUS"
+      sleep 4
+      ;;
+  esac
+done
+
+sudo docker exec lemonldap-ng bash -c "/usr/share/lemonldap-ng/bin/rotateOidcKeys" || true

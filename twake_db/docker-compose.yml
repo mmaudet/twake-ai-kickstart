@@ -2,12 +2,9 @@ services:
   ldap:
     image: osixia/openldap:1.5.0
     container_name: ldap
-    env_file:
-      - ./secrets/ldap.env
-      - ../.env
     environment:
       LDAP_DOMAIN: "${BASE_DOMAIN}"
-      #LDAP_ADMIN_PASSWORD: admin
+      LDAP_ADMIN_PASSWORD: admin
     volumes:
       - ldap_data:/var/lib/ldap
       - ./ldap/bootstrap:/container/service/slapd/assets/config/bootstrap/ldif/custom
@@ -33,11 +30,9 @@ services:
     restart: unless-stopped
     #ports:
       #- "5432:5432"
-    #environment:
-      #POSTGRES_USER: postgres
-      #POSTGRES_PASSWORD: postgres
-    env_file:
-      - ./secrets/postgres.env
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init-db-postgres:/docker-entrypoint-initdb.d/
@@ -56,10 +51,8 @@ services:
   valkey:
     image: bitnamilegacy/valkey
     container_name: visio-valkey
-    env_file:
-      - ./secrets/valkey.env
-    #environment:
-      #VALKEY_PASSWORD: valkeypass
+    environment:
+      VALKEY_PASSWORD: valkeypass
     restart: unless-stopped
     volumes:
       - valkey_data:/bitnami/valkey/data
@@ -82,11 +75,9 @@ services:
     restart: unless-stopped
     labels:
       - "traefik.enable=false"
-    env_file:
-      - ./secrets/couchdb.env
     environment:
-      #COUCHDB_USER: admin
-      #COUCHDB_PASSWORD: password
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
       COUCHDB_HOST: couchdb
     volumes:
       - couchdb_data:/opt/couchdb/data
@@ -105,11 +96,9 @@ services:
     image: mongo:6
     container_name: mongodb
     restart: unless-stopped
-    env_file:
-      - ./secrets/mongodb.env
-    #environment:
-      #MONGO_INITDB_ROOT_USERNAME: mongoroot
-      #MONGO_INITDB_ROOT_PASSWORD: password
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongoroot
+      MONGO_INITDB_ROOT_PASSWORD: password
     networks:
       - twake-network
     labels:
@@ -151,11 +140,9 @@ services:
       interval: 3s
       timeout: 30s
       retries: 3
-    env_file:
-      - ./secrets/rabbitmq.env
-    #environment:
-      #RABBITMQ_DEFAULT_USER: guest
-      #RABBITMQ_DEFAULT_PASS: guest
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
     labels:
       - "traefik.enable=false"  
     entrypoint: ["/bin/bash", "/etc/rabbitmq/rabbitmq-init.sh"]  
@@ -169,15 +156,13 @@ services:
       - twake-network
     labels:
       - "traefik.enable=false" 
-    env_file:
-      - ./secrets/cassandra.env   
     environment:
-      #- CASSANDRA_USER=cassandra
-     # - CASSANDRA_PASSWORD=jK9mL2nP5qR8tW3vX
-      - CASSANDRA_PASSWORD_SEEDER=yes
-      - JAVA_TOOL_OPTIONS=-Dcassandra.skip_wait_for_gossip_to_settle=0
-      - HEAP_NEWSIZE=256M
-      - MAX_HEAP_SIZE=1024M
+      CASSANDRA_USER: cassandra
+      CASSANDRA_PASSWORD: jK9mL2nP5qR8tW3vX
+      CASSANDRA_PASSWORD_SEEDER: yes
+      JAVA_TOOL_OPTIONS: -Dcassandra.skip_wait_for_gossip_to_settle=0
+      HEAP_NEWSIZE: 256M
+      MAX_HEAP_SIZE: 1024M
  
     volumes:
       - cassandra_data:/bitnami/cassandra
@@ -195,11 +180,9 @@ services:
     restart: always
     networks:
       - twake-network
-    env_file:
-      - ./secrets/minio.env
     environment:
-      #- MINIO_ROOT_USER=vW9xY2zA5bC8dE1fG4hJ3kL
-      #- MINIO_ROOT_PASSWORD=hJ6kL9mN2pQ5rS8tU1vW4xY7zA0bC3dE6fG9hJ2kL
+      - MINIO_ROOT_USER=vW9xY2zA5bC8dE1fG4hJ3kL
+      - MINIO_ROOT_PASSWORD=hJ6kL9mN2pQ5rS8tU1vW4xY7zA0bC3dE6fG9hJ2kL
       - MINIO_SCHEME=http
     volumes:
       - minio_data:/bitnami/minio/data
@@ -223,8 +206,6 @@ volumes:
   rabbitmq_data:
     driver: local
   cassandra_data:
-    driver: local
-  redis_data:
     driver: local
   minio_data:
     driver: local  

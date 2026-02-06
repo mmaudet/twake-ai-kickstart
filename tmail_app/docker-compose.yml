@@ -132,7 +132,6 @@ services:
     restart: always
     networks:
       - twake-network
-    # Port accessed via existing reverse proxy (Traefik)
     volumes:
       - ./tmail-web-conf/.env:/usr/share/nginx/html/assets/env.file
       - ./tmail-web-conf/env.fcm:/usr/share/nginx/html/assets/configurations/env.fcm

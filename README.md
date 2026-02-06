@@ -52,6 +52,18 @@ Secure file sharing and storage.
 
 *   **Docker** and **Docker Compose** installed.
 
+
+## Configuration
+
+*   **Domains**: The stack is configured for `*.twake.local` domain. Configure your `/etc/hosts` with:
+
+```bash
+127.0.0.1  linshare.twake.local admin-linshare.twake.local upload-request-linshare.twake.local meet.twake.local onlyoffice.twake.local calendar.twake.local contacts.twake.local account.twake.local excal.twake.local mail.twake.local jmap.twake.local
+127.0.0.1  oauthcallback.twake.local manager.twake.local auth.twake.local tcalendar-side-service.twake.local sabre-dav.twake.local
+127.0.0.1  user1.twake.local user1-home.twake.local user1-linshare.twake.local user1-drive.twake.local user1-settings.twake.local user1-mail.twake.local user1-chat.twake.local user1-notes.twake.local user1-dataproxy.twake.local
+127.0.0.1  user2.twake.local user2-home.twake.local user2-linshare.twake.local user2-drive.twake.local user2-settings.twake.local user2-mail.twake.local user2-chat.twake.local user2-notes.twake.local user2-dataproxy.twake.local
+127.0.0.1  user3.twake.local user3-home.twake.local user3-linshare.twake.local user3-drive.twake.local user3-settings.twake.local user3-mail.twake.local user3-chat.twake.local user3-notes.twake.local user3-dataproxy.twake.local
+```
 ## Deployment Instructions
 
 ### 1. Create the Network
@@ -61,19 +73,27 @@ docker network create twake-network --subnet=172.27.0.0/16
 ```
 
 ### 2. Start Services
-It is recommended to start the components in the following order to ensure dependencies (databases, auth) are ready before the applications.
-
 - In order to pull Linshare components, you need to be logged in to Linagora Docker registry.
-- Modify the .env file to update the domain name.
+- Modify the .env file to update the domain name, the default is `twake.local`.
 - To start the services, use the following script:
+
 ```bash
 ./wrapper.sh up -d
+```
+- If you want to start the components one by one, you can use the following commands:
+```bash
+./wrapper.sh up -d dirname
+```
+example:
+```bash
+./wrapper.sh up -d twake_db
 ```
 - To see how to use the wrapper script, run:
 ```bash
 ./wrapper.sh --help
 ```
 
+- If you want to start the services one by one, you can use the following commands:
 #### Step 1: Start Databases
 
 - Navigate to the database directory and start the services:
@@ -143,57 +163,19 @@ Check that all services are running:
 docker ps
 ```
 
-## Configuration
-
-*   **Domains**: The stack is configured for `*.twake.local` domains. Configure your `/etc/hosts` with:
-
-```bash
-127.0.0.1  linshare.twake.local admin-linshare.twake.local upload-request-linshare.twake.local meet.twake.local onlyoffice.twake.local calendar.twake.local contacts.twake.local account.twake.local excal.twake.local mail.twake.local jmap.twake.local
-127.0.0.1  oauthcallback.twake.local manager.twake.local auth.twake.local tcalendar-side-service.twake.local sabre-dav.twake.local
-127.0.0.1  user1.twake.local user1-home.twake.local user1-linshare.twake.local user1-drive.twake.local user1-settings.twake.local user1-mail.twake.local user1-chat.twake.local user1-notes.twake.local
-127.0.0.1  user2.twake.local user2-home.twake.local user2-linshare.twake.local user2-drive.twake.local user2-settings.twake.local user2-mail.twake.local user2-chat.twake.local user2-notes.twake.local
-127.0.0.1  user3.twake.local user3-home.twake.local user3-linshare.twake.local user3-drive.twake.local user3-settings.twake.local user3-mail.twake.local user3-chat.twake.local user3-notes.twake.local
-```
-
 *   **Certificates**: SSL certificates are expected in `twake_auth/traefik/ssl/`.
 
 ## Quick Start Guide
 
-Once everything is running, follow these steps:
+Once everything is running:
 
-### Note
-For this twake workplace docker compose version, we are not integrating Linshare in the twake home.
-If you want to integrate Linshare in the twake home, you need to run this patch : [cozy_stack/patch-cozy.sh](cozy_stack/patch-cozy.sh) with :
-```bash
-cd cozy_stack
-./patch-cozy.sh
-```
-
-### Configure LinShare
-
-1. Browse to `https://admin-linshare.twake.local` and log in using:
-   - **Email**: `root@localhost.localdomain`
-   - **Password**: `adminlinshare`
-
-2. Create a domain:
-   - Select **Create domain**
-   - Fill in the name field
-   - Click **Save**
-
-3. Configure the domain:
-   - Select **Domain**
-   - Click on the suggested domain
-   - Select **User Providers**
-   - Click on **Create new provider**
-   - Select **OIDC**
-   - Fill in the **Associated domain identifier** with `domain_discriminator` and save
 
 ### Browser self-signed certificate
 
 This POC uses a self-signed Certificate Authority (CA).
 
 When Cozy Stack integrates external applications (Mail,LinShare, etc.), they are loaded inside **iframes**.  
-If the CA is **not trusted by the browser**, modern browsers will block or partially break these iframes due to TLS and security restrictions.
+If the CA is **not trusted by the browser**, browsers will block or partially break these iframes due to TLS and security restrictions.
 
 To avoid iframe loading issues, mixed-content warnings, and blocked resources, you **must trust the CA certificate** used by the reverse-proxy (Traefik).
 
