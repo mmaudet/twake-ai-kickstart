@@ -31,6 +31,9 @@ services:
       - "traefik.http.routers.synapse.rule=Host(`matrix.${BASE_DOMAIN}`)"
       - "traefik.http.routers.synapse.entrypoints=websecure"
       - "traefik.http.services.synapse.loadbalancer.server.port=8008"
+      - "traefik.http.routers.matrixfromchat.rule=Host(`chat.${BASE_DOMAIN}`) && PathPrefix(`/_matrix`)"
+      - "traefik.http.routers.matrixfromchat.entrypoints=websecure"
+      - "traefik.http.routers.matrixfromchat.priority=100"
 
   tom:
     image: tom

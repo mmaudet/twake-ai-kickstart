@@ -1,6 +1,6 @@
 mongo.url=mongodb://mongoroot:password@mongodb:27017/esn_docker?authSource=admin
 mongo.database=esn_docker
-domains=${BASE_DOMAIN}, ${MAIL_DOMAIN}
+domains=${BASE_DOMAIN}
 rest.api.port=80
 spa.calendar.url=https://calendar.${BASE_DOMAIN}/calendar
 spa.excal.url=https://excal.${BASE_DOMAIN}

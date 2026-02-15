@@ -128,10 +128,10 @@ authentication:
       userinfo_instance_field: user_name
       #userinfo_instance_prefix: name
       userinfo_instance_suffix: .twake.local
-      allow_custom_instance: false
+      allow_custom_instance: true
       allow_oauth_token: true
       logout_url: https://auth.twake.local/oauth2/logout
-      #id_token_jwk_url: https://identity-provider/path/to/jwk
+      id_token_jwk_url: https://auth.twake.local/oauth2/jwks
 # jobs parameters to configure the job system
 jobs:
   # path to the imagemagick convert binary

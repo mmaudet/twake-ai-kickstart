@@ -499,7 +499,7 @@
          "oidcRPMetaDataOptionsIdTokenEncContentEncAlg" : "A256GCM",
          "oidcRPMetaDataOptionsLogoutBypassConfirm" : 1,
          "oidcRPMetaDataOptionsLogoutEncContentEncAlg" : "A256GCM",
-         "oidcRPMetaDataOptionsLogoutSessionRequired" : 0,
+         "oidcRPMetaDataOptionsLogoutSessionRequired" : 1,
          "oidcRPMetaDataOptionsLogoutType": "back",
          "oidcRPMetaDataOptionsLogoutUrl": "https://oauthcallback.twake.local/oidc/default/logout",
          "oidcRPMetaDataOptionsNoJwtHeader": 0,

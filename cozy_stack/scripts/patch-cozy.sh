@@ -95,9 +95,18 @@ for DOMAIN in user1.$BASE_DOMAIN user2.$BASE_DOMAIN user3.$BASE_DOMAIN; do
     '{"home.apps.only-one-list": "true"}'
 
   cozy-stack feature flags --domain "\$DOMAIN" \
-    '{"apps.hidden": ["dataproxy", "settings"]}'  
+    '{"apps.hidden": ["dataproxy", "settings"]}'
+  
+  cozy-stack feature flags --domain "\$DOMAIN" \
+    '{"cozy.search.enabled": "true"}' 
+  
+  cozy-stack feature flags --domain "\$DOMAIN" \
+    '{"cozy.searchbar.enabled": "true"}'    
 done
 
+for USERID in user1 user2 user3; do
+  cozy-stack instances modify "\$USERID.$BASE_DOMAIN" --oidc_id "\$USERID"
+done
 echo "▶ Applying global feature defaults..."
 cozy-stack features defaults \
   '{"drive.office": {"enabled": true, "write": true}}'

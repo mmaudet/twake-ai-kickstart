@@ -70,7 +70,7 @@ services:
       - twake-network
 
   couchdb:
-    image: couchdb:3.5.1
+    image: couchdb:3.3.3
     container_name: couchdb
     restart: unless-stopped
     labels:

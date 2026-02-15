@@ -36,7 +36,7 @@ services:
       - "traefik.http.routers.sidesvc.middlewares=cors"
       - "traefik.http.services.sidesvc.loadbalancer.server.port=80"
       - "traefik.http.middlewares.cors.headers.accesscontrolalloworiginlist=*"
-      - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS,PROPFIND,REPORT,ACL"
+      - "traefik.http.middlewares.cors.headers.accesscontrolallowmethods=GET,POST,PUT,DELETE,OPTIONS,PATCH,PROPFIND,REPORT,ACL"
       - "traefik.http.middlewares.cors.headers.accesscontrolallowheaders=Authorization,Content-Type,Depth,If-Match,If-None-Match"
       - "traefik.http.middlewares.cors.headers.accesscontrolmaxage=1728000"    
     healthcheck:

@@ -1,7 +1,7 @@
 services:
 
   lemonldap:
-    image: yadd/lemonldap-ng-full:2.21.2-3
+    image: yadd/lemonldap-ng-full:2026-01-23
     container_name: lemonldap-ng
     volumes:
       - ./config/lmConf-1.json:/var/lib/lemonldap-ng/conf/lmConf-1.json
