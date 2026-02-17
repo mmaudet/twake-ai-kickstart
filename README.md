@@ -46,7 +46,14 @@ Secure file sharing and storage.
 ### 8. TMail Application (`tmail_app`)
 *   **TMail**: Email application.
 
+### Component's Structure 
+Each component (application) in the PoC repository is defined as a separate Docker Compose project.
 
+Every application includes:
+- a docker-compose.yml file that defines its services.
+- a wrapper script responsible for generating the required configuration files for those services.
+
+The wrapper generates configuration files dynamically based on the domain specifications defined in the root .env file of the project.
 
 ## Prerequisites
 
