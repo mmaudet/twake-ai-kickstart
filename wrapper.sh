@@ -10,23 +10,23 @@ BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPOS=(
     ["twake_db"]="${BASE_DIR}/twake_db"
     ["twake_auth"]="${BASE_DIR}/twake_auth"
-    ["cozy_stack"]="${BASE_DIR}/cozy_stack"
+    ["drive_app"]="${BASE_DIR}/drive_app"
     ["onlyoffice_app"]="${BASE_DIR}/onlyoffice_app"
-    ["meet_app"]="${BASE_DIR}/meet_app"
+    ["visio_app"]="${BASE_DIR}/visio_app"
     ["calendar_app"]="${BASE_DIR}/calendar_app"
     ["chat_app"]="${BASE_DIR}/chat_app"
-    ["tmail_app"]="${BASE_DIR}/tmail_app"
+    ["mail_app"]="${BASE_DIR}/mail_app"
 )
 
 # Order of operations
-START_ORDER=("twake_db" "twake_auth" "cozy_stack" "onlyoffice_app" "meet_app" "calendar_app" "chat_app" "tmail_app")
-STOP_ORDER=("tmail_app" "chat_app" "calendar_app" "meet_app" "onlyoffice_app" "cozy_stack" "twake_auth" "twake_db")
+START_ORDER=("twake_db" "twake_auth" "drive_app" "onlyoffice_app" "visio_app" "calendar_app" "chat_app" "mail_app")
+STOP_ORDER=("mail_app" "chat_app" "calendar_app" "visio_app" "onlyoffice_app" "drive_app" "twake_auth" "twake_db")
 
 # Dependencies: containers that must be healthy before starting a repo
 declare -A REPO_DEPS
 REPO_DEPS=(
     ["chat_app"]="lemonldap-ng"
-    ["tmail_app"]="lemonldap-ng"
+    ["mail_app"]="lemonldap-ng"
 )
 
 show_help() {
@@ -37,7 +37,7 @@ show_help() {
     echo "  $0 up twake_db                  Start only the twake_db repo"
     echo "  $0 up twake_auth lemonldap      Start only the lemonldap service in twake_auth"
     echo "  $0 down                         Stop all repos in reverse order"
-    echo "  $0 down cozy_stack              Stop only cozy_stack"
+    echo "  $0 down drive_app               Stop only drive_app"
 }
 
 # ----------------------------

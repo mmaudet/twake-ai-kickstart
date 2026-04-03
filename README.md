@@ -51,7 +51,7 @@ Handles entry points and security.
 - **LemonLDAP::NG**: Web Single Sign-On (SSO) and OIDC provider
 - **Docker Socket Proxy**: Securely exposes the Docker socket to Traefik
 
-### 3. Meet Application (`meet_app`)
+### 3. Visio Application (`visio_app`)
 
 Video conferencing component.
 
@@ -69,9 +69,9 @@ Secure file sharing and storage.
 - **UI Upload Request**: Interface for external upload requests
 - **ClamAV**: Antivirus scanning for uploaded files
 
-### 5. Cozy Stack (`cozy_stack`)
+### 5. Drive Application (`drive_app`)
 
-- **Cozy Stack**: Personal cloud platform server
+- **Cozy Stack**: Personal cloud and drive platform server
 
 ### 6. OnlyOffice Application (`onlyoffice_app`)
 
@@ -81,7 +81,7 @@ Secure file sharing and storage.
 
 - **Calendar**: Shared calendar service
 
-### 8. TMail Application (`tmail_app`)
+### 8. Mail Application (`mail_app`)
 
 - **TMail**: JMAP email service
 
@@ -180,13 +180,13 @@ cd twake_db && ./compose-wrapper.sh up -d && cd ..
 cd twake_auth && ./compose-wrapper.sh up -d && cd ..
 
 # 3. Cozy Stack
-cd cozy_stack && ./compose-wrapper.sh up -d && cd ..
+cd drive_app && ./compose-wrapper.sh up -d && cd ..
 
 # 4. OnlyOffice
 cd onlyoffice_app && docker compose --env-file ../.env up -d && cd ..
 
 # 5. Meet
-cd meet_app && ./compose-wrapper.sh up -d && cd ..
+cd visio_app && ./compose-wrapper.sh up -d && cd ..
 
 # 6. Calendar
 cd calendar_app && ./compose-wrapper.sh up -d && cd ..
@@ -195,7 +195,7 @@ cd calendar_app && ./compose-wrapper.sh up -d && cd ..
 cd chat_app && ./compose-wrapper.sh up -d && cd ..
 
 # 8. TMail (requires lemonldap-ng healthy)
-cd tmail_app && ./compose-wrapper.sh up -d && cd ..
+cd mail_app && ./compose-wrapper.sh up -d && cd ..
 ```
 
 ### Verify deployment
