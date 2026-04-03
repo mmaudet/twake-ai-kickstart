@@ -51,6 +51,8 @@ export default function TokensPage() {
   }, [email])
 
   async function handleRevoke(service: string, tokenId?: string, tokenType?: string) {
+    const label = tokenType === 'umbrella' ? `umbrella token (${service})` : service
+    if (!confirm(`Are you sure you want to revoke the token for ${label}? This action cannot be undone.`)) return
     try {
       if (tokenType === 'umbrella' && tokenId) {
         // Umbrella tokens are revoked by ID
