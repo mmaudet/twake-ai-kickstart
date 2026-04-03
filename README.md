@@ -90,6 +90,11 @@ Secure file sharing and storage.
 - **Matrix Synapse**: Federated messaging server
 - **Tom Server**: Identity and vault server
 
+### 10. Token Manager Application (`token_manager_app`)
+
+- **Token Manager API**: Backend service for secure token management
+- **Token Manager UI**: Web interface for token management
+
 ### Component Structure
 
 Each component is defined as a separate Docker Compose project and includes:
@@ -122,6 +127,9 @@ Add the following entries to your `/etc/hosts` file (adapt if you changed `BASE_
 
 # Chat (chat_app)
 127.0.0.1  chat.twake.local matrix.twake.local tom.twake.local fed.twake.local
+
+# Token Manager (token_manager_app)
+127.0.0.1  token-manager.twake.local token-manager-api.twake.local
 
 # Mail (mail_app)
 127.0.0.1  mail.twake.local jmap.twake.local
