@@ -365,31 +365,53 @@ export default function CreateTokenDialog({ open, onClose, onCreated }: Props) {
             )}
 
             {displayTab === 'usage' && (() => {
+              const isUmbrella = tokenType === 'umbrella'
               const svcId = result.service ?? selectedService
               const svc = SERVICES.find(s => s.id === svcId)
-              const curlCmd = svc?.curlExample?.(result.token ?? 'YOUR_TOKEN').replace(/YOUR_ACCOUNT_ID/g, jmapAccountId || 'YOUR_ACCOUNT_ID')
+              const proxyBase = 'https://token-manager-api.twake.local/api/v1/proxy'
+              const tkn = result.token ?? 'YOUR_TOKEN'
+
+              // For umbrella tokens: show proxy-based curl for each scope
+              // For service tokens: show direct curl
+              let curlCmd: string
+              if (isUmbrella) {
+                const firstScope = selectedScopes[0] ?? 'twake-mail'
+                const firstSvc = SERVICES.find(s => s.id === firstScope)
+                const path = firstScope === 'twake-mail' ? 'jmap' : firstScope === 'twake-calendar' ? 'dav/principals/' : firstScope === 'twake-chat' ? 'joined_rooms' : 'files/io.cozy.files.root-dir'
+                curlCmd = `# Umbrella tokens must go through the Token Manager proxy\ncurl -sk ${proxyBase}/${firstScope}/${path} \\\n  -H "Authorization: Bearer ${tkn}"`
+                if (selectedScopes.length > 1) {
+                  curlCmd += `\n\n# Other services available with this token:\n${selectedScopes.slice(1).map(s => `# ${proxyBase}/${s}/...`).join('\n')}`
+                }
+              } else {
+                curlCmd = svc?.curlExample?.(tkn).replace(/YOUR_ACCOUNT_ID/g, jmapAccountId || 'YOUR_ACCOUNT_ID') ?? ''
+              }
+
               return (
                 <>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#95a0b4', marginBottom: 16 }}>
-                    {svc?.endpoint && <div><span style={{ fontWeight: 600, color: '#475569' }}>Endpoint:</span><br/><code style={{ fontSize: 11 }}>{svc.endpoint}</code></div>}
-                    {svc?.scope && <div><span style={{ fontWeight: 600, color: '#475569' }}>OIDC Scope:</span><br/><code style={{ fontSize: 11 }}>{svc.scope}</code></div>}
-                  </div>
-                  {curlCmd && (
-                    <div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Example curl command</div>
-                      <div style={{ background: '#1e293b', borderRadius: 6, padding: '12px 14px', position: 'relative' }}>
-                        <pre style={{ margin: 0, fontSize: 11, color: '#e2e8f0', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.6 }}>
-{curlCmd}
-                        </pre>
-                        <button onClick={() => { navigator.clipboard.writeText(curlCmd ?? '') }} style={{
-                          position: 'absolute', top: 8, right: 8, background: '#334155', border: '1px solid #475569',
-                          color: '#e2e8f0', borderRadius: 4, padding: '3px 8px', fontSize: 11, cursor: 'pointer',
-                        }}>
-                          Copy
-                        </button>
-                      </div>
+                  {isUmbrella ? (
+                    <div style={{ background: '#eff6ff', border: '1px solid #93c5fd', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontSize: 12, color: '#1e40af' }}>
+                      💡 Umbrella tokens must be used via the <strong>Token Manager proxy</strong>, not directly against service APIs.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 16px', fontSize: 12, color: '#95a0b4', marginBottom: 16 }}>
+                      {svc?.endpoint && <div><span style={{ fontWeight: 600, color: '#475569' }}>Endpoint:</span><br/><code style={{ fontSize: 11 }}>{svc.endpoint}</code></div>}
+                      {svc?.scope && <div><span style={{ fontWeight: 600, color: '#475569' }}>OIDC Scope:</span><br/><code style={{ fontSize: 11 }}>{svc.scope}</code></div>}
                     </div>
                   )}
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: '#475569', marginBottom: 6 }}>Example curl command</div>
+                    <div style={{ background: '#1e293b', borderRadius: 6, padding: '12px 14px', position: 'relative' }}>
+                      <pre id="curl-example-code" style={{ margin: 0, fontSize: 11, color: '#e2e8f0', fontFamily: 'monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-all', lineHeight: 1.6 }}>
+{curlCmd}
+                      </pre>
+                      <button onClick={() => { navigator.clipboard.writeText(curlCmd) }} style={{
+                        position: 'absolute', top: 8, right: 8, background: '#334155', border: '1px solid #475569',
+                        color: '#e2e8f0', borderRadius: 4, padding: '3px 8px', fontSize: 11, cursor: 'pointer',
+                      }}>
+                        Copy
+                      </button>
+                    </div>
+                  </div>
                 </>
               )
             })()}
@@ -399,9 +421,8 @@ export default function CreateTokenDialog({ open, onClose, onCreated }: Props) {
               <button style={primaryBtn} onClick={handleClose}>Done — I&apos;ve copied it</button>
             ) : (
               <button style={primaryBtn} onClick={() => {
-                const svcId = result.service ?? selectedService
-                const svc = SERVICES.find(s => s.id === svcId)
-                const cmd = svc?.curlExample?.(result.token ?? '').replace(/YOUR_ACCOUNT_ID/g, jmapAccountId || 'YOUR_ACCOUNT_ID') ?? ''
+                const pre = document.getElementById('curl-example-code')
+                const cmd = pre?.textContent ?? ''
                 navigator.clipboard.writeText(cmd)
                 setCopied(true)
                 setTimeout(() => setCopied(false), 2000)
