@@ -128,11 +128,23 @@ export default function CreateTokenDialog({ open, onClose, onCreated }: Props) {
           setStep('display')
         } else {
           const text = await resp.text().catch(() => '')
-          setError(`Error ${resp.status}: ${text}`)
+          try {
+            const err = JSON.parse(text)
+            setError(err.message ?? err.error ?? `Error ${resp.status}`)
+          } catch {
+            setError(`Error ${resp.status}: ${text}`)
+          }
         }
       }
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'An error occurred')
+      const msg = e instanceof Error ? e.message : 'An error occurred'
+      // Parse API error messages
+      try {
+        const parsed = JSON.parse(msg.replace(/^API error \d+: /, ''))
+        setError(parsed.message ?? parsed.error ?? msg)
+      } catch {
+        setError(msg)
+      }
     } finally {
       setLoading(false)
     }
