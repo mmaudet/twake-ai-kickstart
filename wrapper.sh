@@ -22,6 +22,19 @@ REPOS=(
 START_ORDER=("twake_db" "twake_auth" "drive_app" "onlyoffice_app" "visio_app" "calendar_app" "chat_app" "mail_app")
 STOP_ORDER=("mail_app" "chat_app" "calendar_app" "visio_app" "onlyoffice_app" "drive_app" "twake_auth" "twake_db")
 
+# Docker Compose project names (visible in Docker Desktop)
+declare -A PROJECT_NAMES
+PROJECT_NAMES=(
+    ["twake_db"]="twake-db"
+    ["twake_auth"]="twake-auth"
+    ["drive_app"]="twake-drive"
+    ["onlyoffice_app"]="twake-onlyoffice"
+    ["visio_app"]="twake-visio"
+    ["calendar_app"]="twake-calendar"
+    ["chat_app"]="twake-chat"
+    ["mail_app"]="twake-mail"
+)
+
 # Dependencies: containers that must be healthy before starting a repo
 declare -A REPO_DEPS
 REPO_DEPS=(
@@ -139,10 +152,11 @@ run_repo() {
         ./compose-wrapper.sh "$action" "${options[@]}"
       fi
     else
+      local project="${PROJECT_NAMES[$repo]}"
       if [[ -n "$service" ]]; then
-        sudo docker compose --env-file ../.env "$action" "${options[@]}" "$service"
+        sudo docker compose -p "$project" --env-file ../.env "$action" "${options[@]}" "$service"
       else
-        sudo docker compose --env-file ../.env "$action" "${options[@]}"
+        sudo docker compose -p "$project" --env-file ../.env "$action" "${options[@]}"
       fi
     fi
 

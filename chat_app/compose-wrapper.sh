@@ -42,11 +42,11 @@ fi
 fi
 
 # Pass all arguments to docker compose
-sudo docker compose --env-file ../.env "$@"
+sudo docker compose -p twake-chat --env-file ../.env "$@"
 
 # 🚨 Everything below is UP-only
 if [ "$ACTION" != "up" ]; then
   exit 0
 fi
 
-sudo docker exec -it chat_app-synapse-1 update-ca-certificates
+sudo docker exec -it twake-chat-synapse-1 update-ca-certificates
