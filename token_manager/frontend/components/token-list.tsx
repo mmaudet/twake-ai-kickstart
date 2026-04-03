@@ -1,6 +1,7 @@
 'use client'
 
 export interface TokenItem {
+  id?: string
   service: string
   status: string
   expires_at: string
@@ -36,7 +37,7 @@ function getStatusColor(status: string): { bg: string; text: string } {
 interface Props {
   tokens: TokenItem[]
   onRefresh?: (service: string) => void
-  onRevoke: (service: string) => void
+  onRevoke: (service: string, tokenId?: string, tokenType?: string) => void
 }
 
 export default function TokenList({ tokens, onRefresh, onRevoke }: Props) {
@@ -141,7 +142,7 @@ export default function TokenList({ tokens, onRefresh, onRevoke }: Props) {
                       </button>
                     )}
                     <button
-                      onClick={() => onRevoke(token.service)}
+                      onClick={() => onRevoke(token.service, token.id, token.type)}
                       style={{
                         background: 'none',
                         border: 'none',

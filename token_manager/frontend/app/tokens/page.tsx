@@ -19,10 +19,25 @@ export default function TokensPage() {
     setLoading(true)
     setError('')
     try {
-      const data = await apiFetch<TokenItem[]>(`/tokens?user=${encodeURIComponent(email)}`, {
+      // Fetch service tokens
+      const serviceTokens = await apiFetch<TokenItem[]>(`/tokens?user=${encodeURIComponent(email)}`, {
         headers: authHeaders(),
       })
-      setTokens(data ?? [])
+
+      // Fetch umbrella tokens
+      let umbrellaTokens: TokenItem[] = []
+      try {
+        umbrellaTokens = await apiFetch<TokenItem[]>(`/umbrella-tokens?user=${encodeURIComponent(email)}`, {
+          headers: authHeaders(),
+        })
+      } catch { /* endpoint may not exist yet */ }
+
+      // Merge: service tokens get type='service', umbrella tokens already have type='umbrella'
+      const allTokens = [
+        ...(serviceTokens ?? []).map((t) => ({ ...t, type: 'service' as const })),
+        ...(umbrellaTokens ?? []),
+      ]
+      setTokens(allTokens)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load tokens')
       setTokens([])
@@ -35,12 +50,21 @@ export default function TokensPage() {
     if (email) fetchTokens()
   }, [email])
 
-  async function handleRevoke(service: string) {
+  async function handleRevoke(service: string, tokenId?: string, tokenType?: string) {
     try {
-      await apiFetch(`/tokens/${encodeURIComponent(service)}?user=${encodeURIComponent(email)}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      })
+      if (tokenType === 'umbrella' && tokenId) {
+        // Umbrella tokens are revoked by ID
+        await apiFetch(`/umbrella-token/${encodeURIComponent(tokenId)}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        })
+      } else {
+        // Service tokens are revoked by service name
+        await apiFetch(`/tokens/${encodeURIComponent(service)}?user=${encodeURIComponent(email)}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        })
+      }
       await fetchTokens()
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to revoke token')

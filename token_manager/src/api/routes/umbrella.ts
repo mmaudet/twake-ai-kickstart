@@ -8,6 +8,29 @@ export async function umbrellaRoutes(app: FastifyInstance) {
   const umbrellaService = (app as any).umbrellaService as UmbrellaService
   const prisma = (app as any).prisma as PrismaClient
 
+  // GET /umbrella-tokens — List umbrella tokens for user
+  app.get('/umbrella-tokens', async (request) => {
+    const user = (request as any).user as OidcUser
+    const tenant = (request as any).tenant as Tenant
+    const { user: targetUser } = request.query as { user?: string }
+    const userId = targetUser ?? user.email
+
+    const tokens = await prisma.umbrellaToken.findMany({
+      where: { tenantId: tenant.id, userId, revokedAt: null },
+      orderBy: { issuedAt: 'desc' },
+    })
+
+    return tokens.map((t) => ({
+      id: t.id,
+      scopes: t.scopes,
+      expires_at: t.expiresAt.toISOString(),
+      issued_at: t.issuedAt.toISOString(),
+      type: 'umbrella',
+      status: t.expiresAt > new Date() ? 'ACTIVE' : 'EXPIRED',
+      service: t.scopes.join(', '),
+    }))
+  })
+
   // POST /umbrella-token — Create umbrella token
   app.post('/umbrella-token', async (request, reply) => {
     const user = (request as any).user as OidcUser
