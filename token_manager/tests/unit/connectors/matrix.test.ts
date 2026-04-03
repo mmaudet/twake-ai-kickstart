@@ -44,58 +44,32 @@ describe('MatrixConnector', () => {
   })
 
   describe('authenticate', () => {
-    it('calls Matrix login endpoint with m.login.token', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          access_token: 'matrix-access-token',
-          user_id: '@user1:twake.local',
-        }),
-      })
-
+    it('returns a redirect result with the Matrix SSO URL', async () => {
       const result = await connector.authenticate('user1@twake.local', mockTenant, 'my-oidc-token')
 
-      expect(mockFetch).toHaveBeenCalledOnce()
-      const [url, opts] = mockFetch.mock.calls[0]
-      expect(url).toBe('https://matrix.twake.local/_matrix/client/v3/login')
-      expect(opts.method).toBe('POST')
-      expect(opts.headers['Content-Type']).toBe('application/json')
-
-      const body = JSON.parse(opts.body)
-      expect(body.type).toBe('m.login.token')
-      expect(body.token).toBe('my-oidc-token')
-
-      expect(result.type).toBe('direct')
-      expect(result.tokenPair).toBeDefined()
-      expect(result.tokenPair!.accessToken).toBe('matrix-access-token')
-      expect(result.tokenPair!.expiresAt).toBeInstanceOf(Date)
+      expect(mockFetch).not.toHaveBeenCalled()
+      expect(result.type).toBe('redirect')
+      expect(result.redirectUrl).toContain('https://matrix.twake.local/_matrix/client/v3/login/sso/redirect')
+      expect(result.state).toBeDefined()
+      expect(typeof result.state).toBe('string')
     })
 
-    it('sets expiresAt based on token_validity_ms', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ access_token: 'matrix-access-token' }),
-      })
-
-      const before = Date.now()
+    it('stores a pending auth entry for the returned state', async () => {
       const result = await connector.authenticate('user1@twake.local', mockTenant, 'token')
-      const after = Date.now()
 
-      const expiresAtMs = result.tokenPair!.expiresAt.getTime()
-      expect(expiresAtMs).toBeGreaterThanOrEqual(before + mockServiceConfig.token_validity_ms)
-      expect(expiresAtMs).toBeLessThanOrEqual(after + mockServiceConfig.token_validity_ms)
+      expect(result.type).toBe('redirect')
+      const pending = connector._pendingAuths.get(result.state!)
+      expect(pending).toBeDefined()
+      expect(pending!.userId).toBe('user1@twake.local')
+      expect(pending!.instanceUrl).toBe('https://matrix.twake.local')
     })
 
-    it('throws when Matrix login endpoint fails', async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-        status: 403,
-        text: async () => 'Forbidden',
-      })
+    it('encodes the callback URL in the redirectUrl', async () => {
+      const result = await connector.authenticate('user1@twake.local', mockTenant, 'token')
 
-      await expect(
-        connector.authenticate('user1@twake.local', mockTenant, 'bad-token'),
-      ).rejects.toThrow()
+      expect(result.type).toBe('redirect')
+      expect(result.redirectUrl).toContain('redirectUrl=')
+      expect(result.redirectUrl).toContain(encodeURIComponent('state='))
     })
   })
 

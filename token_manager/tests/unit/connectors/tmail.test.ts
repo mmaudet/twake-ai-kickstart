@@ -129,14 +129,14 @@ describe('TmailConnector', () => {
       expect(body.get('token_type_hint')).toBe('access_token')
     })
 
-    it('throws when revoke endpoint fails', async () => {
+    it('does not throw when revoke endpoint fails (best-effort)', async () => {
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
         text: async () => 'Server Error',
       })
 
-      await expect(connector.revoke('bad-token', mockTenant)).rejects.toThrow()
+      await expect(connector.revoke('bad-token', mockTenant)).resolves.toBeUndefined()
     })
   })
 })
