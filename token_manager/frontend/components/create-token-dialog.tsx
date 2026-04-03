@@ -394,7 +394,20 @@ export default function CreateTokenDialog({ open, onClose, onCreated }: Props) {
             })()}
           </div>
           <div style={footerStyle}>
-            <button style={primaryBtn} onClick={handleClose}>Done — I&apos;ve copied it</button>
+            {displayTab === 'token' ? (
+              <button style={primaryBtn} onClick={handleClose}>Done — I&apos;ve copied it</button>
+            ) : (
+              <button style={primaryBtn} onClick={() => {
+                const svcId = result.service ?? selectedService
+                const svc = SERVICES.find(s => s.id === svcId)
+                const cmd = svc?.curlExample?.(result.token ?? '').replace(/YOUR_ACCOUNT_ID/g, jmapAccountId || 'YOUR_ACCOUNT_ID') ?? ''
+                navigator.clipboard.writeText(cmd)
+                setCopied(true)
+                setTimeout(() => setCopied(false), 2000)
+              }}>
+                {copied ? '✓ Curl copied!' : 'Copy curl'}
+              </button>
+            )}
           </div>
         </div>
       </div>
