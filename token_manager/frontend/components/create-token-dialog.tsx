@@ -70,6 +70,7 @@ export default function CreateTokenDialog({ open, onClose, onCreated }: Props) {
     setResult({})
     setCopied(false)
     setLoading(false)
+    setDisplayTab('token')
   }
 
   function handleClose() {
