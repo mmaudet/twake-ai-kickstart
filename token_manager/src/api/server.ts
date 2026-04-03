@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client'
 import { readFileSync } from 'node:fs'
 import { parseConfig } from './config.js'
 import { healthRoutes } from './routes/health.js'
+import { tokenRoutes } from './routes/tokens.js'
 import { authHook } from './middleware/auth.js'
 import { tenantHook } from './middleware/tenant.js'
 import { TokenService } from './services/token-service.js'
@@ -57,7 +58,7 @@ export async function buildApp() {
   }
 
   // Create services
-  const encryptionKey = process.env.ENCRYPTION_KEY ?? '0'.repeat(64) // 32-byte hex key
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY ?? '0'.repeat(64) // 32-byte hex key
   const tokenService = new TokenService(prisma, connectors, encryptionKey)
   const umbrellaService = new UmbrellaService(prisma)
 
@@ -81,7 +82,7 @@ export async function buildApp() {
   await app.register(async (protectedApp) => {
     protectedApp.addHook('onRequest', authHook(config.oidc.issuer))
     protectedApp.addHook('onRequest', tenantHook(prisma))
-    // Routes will be registered here in upcoming tasks
+    await protectedApp.register(tokenRoutes, { prefix: '/api/v1' })
   })
 
   return { app, config, prisma }
