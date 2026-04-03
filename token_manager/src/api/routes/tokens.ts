@@ -245,6 +245,70 @@ export async function tokenRoutes(app: FastifyInstance) {
     return { status: 'updated' }
   })
 
+  // GET /audit — User's own audit log (no admin check)
+  app.get('/audit', async (request) => {
+    const user = (request as any).user as OidcUser
+    const tenant = (request as any).tenant as Tenant
+    const { limit, offset } = request.query as { limit?: string; offset?: string }
+    return prisma.auditLog.findMany({
+      where: { tenantId: tenant.id, userId: user.email },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit ?? '50', 10),
+      skip: parseInt(offset ?? '0', 10),
+    })
+  })
+
+  // GET /admin/users — List distinct users with token counts (admin only)
+  app.get('/admin/users', async (request, reply) => {
+    const user = (request as any).user as OidcUser
+    if (!user.isAdmin) { reply.code(403).send({ error: 'forbidden' }); return }
+    const tenant = (request as any).tenant as Tenant
+    const tokens = await prisma.serviceToken.findMany({
+      where: { tenantId: tenant.id },
+      select: { userId: true, service: true, status: true },
+    })
+    const umbrellas = await prisma.umbrellaToken.findMany({
+      where: { tenantId: tenant.id, revokedAt: null },
+      select: { userId: true },
+    })
+    const userMap = new Map<string, { active: number; umbrella: number }>()
+    for (const t of tokens) {
+      if (!userMap.has(t.userId)) userMap.set(t.userId, { active: 0, umbrella: 0 })
+      if (t.status === 'ACTIVE') userMap.get(t.userId)!.active++
+    }
+    for (const t of umbrellas) {
+      if (!userMap.has(t.userId)) userMap.set(t.userId, { active: 0, umbrella: 0 })
+      userMap.get(t.userId)!.umbrella++
+    }
+    return Array.from(userMap.entries()).map(([email, counts]) => ({
+      email, name: email.split('@')[0], ...counts,
+    }))
+  })
+
+  // DELETE /admin/users/bulk-revoke — Bulk revoke (admin only)
+  app.delete('/admin/users/bulk-revoke', async (request, reply) => {
+    const user = (request as any).user as OidcUser
+    if (!user.isAdmin) { reply.code(403).send({ error: 'forbidden' }); return }
+    const tenant = (request as any).tenant as Tenant
+    const { users } = request.body as { users: string[] }
+    let revokedCount = 0
+    for (const userId of users) {
+      const result = await prisma.serviceToken.updateMany({
+        where: { tenantId: tenant.id, userId, status: 'ACTIVE' },
+        data: { status: 'REVOKED' },
+      })
+      revokedCount += result.count
+      await prisma.umbrellaToken.updateMany({
+        where: { tenantId: tenant.id, userId, revokedAt: null },
+        data: { revokedAt: new Date() },
+      })
+      await prisma.auditLog.create({
+        data: { tenantId: tenant.id, userId, action: 'bulk_revoked', details: { by: user.email }, ip: request.ip },
+      })
+    }
+    return { revoked: revokedCount, users: users.length }
+  })
+
   // GET /admin/audit — Query audit log (admin only)
   app.get('/admin/audit', async (request, reply) => {
     const user = (request as any).user as OidcUser
