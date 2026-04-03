@@ -148,10 +148,10 @@ export async function buildApp() {
         data: { tenantId, userId, service: pending.service, action: 'token_created', details: { via: 'oauth-consent' }, ip: request.ip },
       })
 
-      reply.redirect(`https://token-manager.${baseDomain}/user?consent=success&service=${pending.service}`)
+      reply.redirect(`https://token-manager.${baseDomain}/tokens?consent=success&service=${pending.service}`)
     } catch (err: any) {
       console.error(`[callback/${pending.service}] Error:`, err.message)
-      reply.redirect(`https://token-manager.${baseDomain}/user?consent=error&message=${encodeURIComponent(err.message)}`)
+      reply.redirect(`https://token-manager.${baseDomain}/tokens?consent=error&message=${encodeURIComponent(err.message)}`)
     }
   }
 
