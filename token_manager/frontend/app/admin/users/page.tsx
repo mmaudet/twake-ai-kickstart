@@ -104,7 +104,12 @@ export default function AdminUsersPage() {
       })
       await fetchAllTokens()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to refresh token')
+      const msg = e instanceof Error ? e.message : 'Failed to refresh token'
+      if (msg.includes('502') || msg.includes('refresh_failed')) {
+        setError('Token refresh failed. The stored token may have expired. The user needs to re-authorize via the consent flow.')
+      } else {
+        setError(msg)
+      }
     }
   }
 

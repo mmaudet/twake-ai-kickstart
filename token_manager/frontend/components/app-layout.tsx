@@ -16,6 +16,7 @@ const MON_ESPACE: NavItem[] = [
 
 const ADMINISTRATION: NavItem[] = [
   { label: 'Users & Tokens', href: '/admin/users' },
+  { label: 'Global Audit Log', href: '/admin/audit' },
   { label: 'Configuration', href: '/admin/config' },
 ]
 
