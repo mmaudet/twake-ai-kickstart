@@ -2,6 +2,7 @@
 
 export interface TokenItem {
   id?: string
+  name?: string
   service: string
   status: string
   expires_at: string
@@ -83,9 +84,11 @@ export default function TokenList({ tokens, onRefresh, onRevoke }: Props) {
         <tbody>
           {visible.map((token, idx) => {
             const isService = token.type !== 'umbrella'
-            const label = isService
-              ? (SERVICE_LABELS[token.service] ?? token.service)
-              : (token.scopes ?? []).map(s => SERVICE_LABELS[s] ?? s).join(', ') || token.service
+            const label = token.name
+              ? token.name
+              : isService
+                ? (SERVICE_LABELS[token.service] ?? token.service)
+                : (token.scopes ?? []).map(s => SERVICE_LABELS[s] ?? s).join(', ') || token.service
             const statusColors = getStatusColor(token.status)
             const displayToken = isService
               ? maskToken(token.service)

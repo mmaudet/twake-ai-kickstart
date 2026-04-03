@@ -33,8 +33,20 @@ export default function AdminUsersPage() {
 
   async function fetchAllTokens() {
     try {
-      const data = await apiFetch<TokenData[]>('/admin/tokens', { headers: authHeaders() })
-      setAllTokens(data ?? [])
+      const serviceTokens = await apiFetch<TokenData[]>('/admin/tokens', { headers: authHeaders() })
+      // Also fetch umbrella tokens for all users
+      let umbrellaTokens: TokenData[] = []
+      try {
+        // Fetch umbrella tokens from each user we know about
+        const usersData = await apiFetch<{ email: string }[]>('/admin/users', { headers: authHeaders() })
+        for (const u of usersData ?? []) {
+          try {
+            const ut = await apiFetch<TokenData[]>(`/umbrella-tokens?user=${encodeURIComponent(u.email)}`, { headers: authHeaders() })
+            umbrellaTokens.push(...(ut ?? []).map(t => ({ ...t, user: u.email })))
+          } catch { /* ignore */ }
+        }
+      } catch { /* ignore */ }
+      setAllTokens([...(serviceTokens ?? []), ...umbrellaTokens])
     } catch { /* ignore */ }
   }
 

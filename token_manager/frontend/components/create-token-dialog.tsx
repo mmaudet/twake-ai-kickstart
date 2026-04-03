@@ -95,7 +95,7 @@ export default function CreateTokenDialog({ open, onClose, onCreated }: Props) {
           {
             method: 'POST',
             headers,
-            body: JSON.stringify({ services: selectedScopes, user: email, name: name || undefined }),
+            body: JSON.stringify({ scopes: selectedScopes, user: email, name: name || undefined }),
           }
         )
         if (resp.status === 202) {

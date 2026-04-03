@@ -24,6 +24,7 @@ export class UmbrellaService {
     userId: string,
     scopes: string[],
     tenant: string,
+    name?: string,
   ): Promise<UmbrellaTokenResult> {
     const rawToken = generateUmbrellaToken()
     const hashed = hashToken(rawToken)
@@ -36,6 +37,7 @@ export class UmbrellaService {
         token: hashed,
         scopes,
         expiresAt,
+        name: name || null,
       },
     })
 

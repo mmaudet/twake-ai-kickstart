@@ -50,6 +50,7 @@ model UmbrellaToken {
   id        String    @id @default(cuid())
   tenantId  String
   userId    String
+  name      String?
   token     String    @unique
   scopes    String[]
   expiresAt DateTime
