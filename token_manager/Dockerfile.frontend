@@ -1,13 +1,14 @@
 FROM node:18-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY frontend ./frontend
-RUN cd frontend && npx next build
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend/ ./
+RUN npx next build
 
 FROM node:18-alpine
 WORKDIR /app
-COPY --from=builder /app/frontend/.next/standalone ./
-COPY --from=builder /app/frontend/.next/static ./frontend/.next/static
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 EXPOSE 3000
-CMD ["node", "frontend/server.js"]
+ENV PORT=3000
+CMD ["node", "server.js"]

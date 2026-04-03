@@ -22,6 +22,19 @@ export async function validateOidcToken(
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null
 
   const token = authHeader.slice(7)
+
+  // Dev mode: accept "dev-<username>" tokens for local testing
+  if (process.env.NODE_ENV !== 'production' && token.startsWith('dev-')) {
+    const username = token.slice(4)
+    return {
+      sub: username,
+      email: `${username}@twake.local`,
+      groups: username === 'user1' ? [ADMIN_GROUP] : [],
+      token,
+      isAdmin: username === 'user1',
+    }
+  }
+
   const verify = jwtVerifyFn ?? defaultJwtVerify
 
   try {
