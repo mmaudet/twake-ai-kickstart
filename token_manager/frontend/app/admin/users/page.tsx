@@ -68,14 +68,28 @@ export default function AdminUsersPage() {
     setExpanded(next)
   }
 
-  async function handleRevokeToken(service: string, email: string) {
+  async function handleRevokeToken(serviceOrId: string, email: string) {
+    if (!confirm(`Revoke this token for ${email}?`)) return
     try {
-      await apiFetch(`/tokens/${encodeURIComponent(service)}?user=${encodeURIComponent(email)}`, {
-        method: 'DELETE',
-        headers: authHeaders(),
-      })
+      if (serviceOrId.startsWith('umbrella:')) {
+        // Umbrella token — revoke by ID
+        const id = serviceOrId.slice('umbrella:'.length)
+        await apiFetch(`/umbrella-token/${encodeURIComponent(id)}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        })
+      } else {
+        // Service token — revoke by service name
+        await apiFetch(`/tokens/${encodeURIComponent(serviceOrId)}?user=${encodeURIComponent(email)}`, {
+          method: 'DELETE',
+          headers: authHeaders(),
+        })
+      }
       await fetchUsers()
       await fetchAllTokens()
+      // Re-expand the user
+      const userTokens = allTokens.filter(t => (t as any).user === email || t.user === email)
+      setExpandedTokens(prev => ({ ...prev, [email]: userTokens }))
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to revoke token')
     }

@@ -107,10 +107,18 @@ export default function UserAccordion({
             </span>
           </div>
 
-          {/* Chevron */}
-          <div style={{ color: '#95a0b4', fontSize: 12, transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
-            ▾
-          </div>
+          {/* Expand button */}
+          <button onClick={(e) => { e.stopPropagation(); onExpand() }} style={{
+            background: expanded ? '#eef3fd' : '#f5f6fa',
+            border: `1px solid ${expanded ? '#297EF2' : '#d0d5dd'}`,
+            borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
+            fontSize: 12, fontWeight: 600, color: expanded ? '#297EF2' : '#666',
+            display: 'flex', alignItems: 'center', gap: 4,
+            transition: 'all 0.15s',
+          }}>
+            <span style={{ transform: expanded ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s', fontSize: 14 }}>▼</span>
+            {expanded ? 'Hide' : 'Show'}
+          </button>
         </div>
       </div>
 
@@ -160,14 +168,16 @@ export default function UserAccordion({
                       {new Date(t.expires_at).toLocaleDateString()}
                     </td>
                     <td style={{ padding: '8px 8px', textAlign: 'right' }}>
+                      {!isUmbrella && (
+                        <button
+                          onClick={() => onRefreshToken(t.service, user.email)}
+                          style={{ marginRight: 6, background: 'none', border: '1px solid #297EF2', color: '#297EF2', borderRadius: 5, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
+                        >
+                          Refresh
+                        </button>
+                      )}
                       <button
-                        onClick={() => onRefreshToken(t.service, user.email)}
-                        style={{ marginRight: 6, background: 'none', border: '1px solid #297EF2', color: '#297EF2', borderRadius: 5, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
-                      >
-                        Refresh
-                      </button>
-                      <button
-                        onClick={() => onRevokeToken(t.service, user.email)}
+                        onClick={() => onRevokeToken(isUmbrella ? `umbrella:${t.id}` : t.service, user.email)}
                         style={{ background: 'none', border: '1px solid #c62828', color: '#c62828', borderRadius: 5, padding: '3px 10px', fontSize: 12, cursor: 'pointer' }}
                       >
                         Revoke

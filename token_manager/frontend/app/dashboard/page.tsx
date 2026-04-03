@@ -34,9 +34,18 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!email) return
 
-    // Fetch tokens for stats
-    apiFetch<TokenItem[]>(`/tokens?user=${encodeURIComponent(email)}`, { headers: authHeaders() })
-      .then(data => setTokens(data ?? []))
+    // Fetch service + umbrella tokens for stats
+    Promise.all([
+      apiFetch<TokenItem[]>(`/tokens?user=${encodeURIComponent(email)}`, { headers: authHeaders() }).catch(() => []),
+      apiFetch<TokenItem[]>(`/umbrella-tokens?user=${encodeURIComponent(email)}`, { headers: authHeaders() }).catch(() => []),
+    ])
+      .then(([service, umbrella]) => {
+        const all = [
+          ...(service ?? []).map(t => ({ ...t, type: 'service' as const })),
+          ...(umbrella ?? []),
+        ]
+        setTokens(all)
+      })
       .catch(() => setTokens([]))
       .finally(() => setLoadingTokens(false))
 

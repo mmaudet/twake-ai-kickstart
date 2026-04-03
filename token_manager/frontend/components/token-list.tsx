@@ -131,18 +131,18 @@ export default function TokenList({ tokens, onRefresh, onRevoke }: Props) {
                   </span>
                 </td>
                 <td style={tdStyle}>
-                  <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                     {isService && onRefresh && (
                       <button
                         onClick={() => onRefresh(token.service)}
                         style={{
                           background: 'none',
-                          border: 'none',
+                          border: '1px solid #297EF2',
                           color: '#297EF2',
-                          fontSize: 13,
+                          borderRadius: 5,
+                          padding: '3px 10px',
+                          fontSize: 12,
                           cursor: 'pointer',
-                          padding: 0,
-                          textDecoration: 'underline',
                         }}
                       >
                         Refresh
@@ -152,12 +152,12 @@ export default function TokenList({ tokens, onRefresh, onRevoke }: Props) {
                       onClick={() => onRevoke(token.service, token.id, token.type)}
                       style={{
                         background: 'none',
-                        border: 'none',
-                        color: '#dc2626',
-                        fontSize: 13,
+                        border: '1px solid #c62828',
+                        color: '#c62828',
+                        borderRadius: 5,
+                        padding: '3px 10px',
+                        fontSize: 12,
                         cursor: 'pointer',
-                        padding: 0,
-                        textDecoration: 'underline',
                       }}
                     >
                       Revoke
