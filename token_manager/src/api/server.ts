@@ -17,6 +17,8 @@ import { TmailConnector } from './connectors/tmail.js'
 import { CalendarConnector } from './connectors/calendar.js'
 import { MatrixConnector } from './connectors/matrix.js'
 import type { ServiceConnector } from './connectors/interface.js'
+import { PendingAuthStore } from './services/pending-auth-store.js'
+import { encrypt } from './services/crypto.js'
 
 export async function buildApp() {
   // Load and parse config
@@ -64,9 +66,15 @@ export async function buildApp() {
   const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY ?? '0'.repeat(64) // 32-byte hex key
   const tokenService = new TokenService(prisma, connectors, encryptionKey)
   const umbrellaService = new UmbrellaService(prisma)
+  const pendingAuthStore = new PendingAuthStore(prisma)
 
-  // Create Fastify app
+  // Create Fastify app with WebDAV methods support
   const app = Fastify({ logger: true })
+
+  // Register WebDAV methods for CalDAV proxy support
+  for (const method of ['PROPFIND', 'REPORT', 'MKCALENDAR', 'PROPPATCH']) {
+    app.addHttpMethod(method, { hasBody: true })
+  }
 
   // Register CORS
   await app.register(cors)
@@ -77,6 +85,7 @@ export async function buildApp() {
   app.decorate('prisma', prisma)
   app.decorate('config', config)
   app.decorate('connectors', connectors)
+  app.decorate('pendingAuthStore', pendingAuthStore)
 
   // Public routes
   await app.register(healthRoutes)
@@ -95,20 +104,70 @@ export async function buildApp() {
   // Start background token refresh scheduler
   startRefreshScheduler(config.redis.url, config.refresh.cron, config.refresh.refresh_before_expiry_ms, prisma, connectors, encryptionKey)
 
-  // OAuth callback — public, no auth
-  app.get('/oauth/callback/cozy', async (request, reply) => {
-    const { code, state } = request.query as { code: string; state: string }
-    const cozyConnector = connectors.get('twake-drive') as any
-    if (!cozyConnector?.handleCallback) {
-      reply.code(400).send({ error: 'cozy_connector_not_configured' })
-      return
+  // Generic OAuth callback handler — uses PendingAuthStore (DB-persisted, survives restarts)
+  async function handleOAuthCallback(
+    request: any, reply: any,
+    getCodeAndState: (query: any) => { code: string; state: string },
+  ) {
+    const { code, state } = getCodeAndState(request.query)
+    const baseDomain = process.env.BASE_DOMAIN ?? 'twake.local'
+
+    // Look up pending auth from DB
+    const pending = await pendingAuthStore.consume(state)
+    if (!pending) {
+      return reply.code(400).send({ error: 'no_pending_auth_for_state', state })
     }
+
+    const connector = connectors.get(pending.service) as any
+    if (!connector?.handleCallback) {
+      return reply.code(400).send({ error: 'connector_not_configured', service: pending.service })
+    }
+
     try {
-      await cozyConnector.handleCallback(code, state)
-      reply.redirect(`https://token-manager.${process.env.BASE_DOMAIN ?? 'twake.local'}/user?consent=success`)
+      const tokenPair = await connector.handleCallback(code, state)
+      const tenantId = pending.data.tenantId as string
+      const userId = pending.userId
+
+      await prisma.serviceToken.upsert({
+        where: { tenantId_userId_service: { tenantId, userId, service: pending.service } },
+        create: {
+          tenantId, userId, service: pending.service,
+          instanceUrl: connector.getInstanceUrl(userId, { id: tenantId } as any),
+          accessToken: encrypt(tokenPair.accessToken, encryptionKey),
+          refreshToken: tokenPair.refreshToken ? encrypt(tokenPair.refreshToken, encryptionKey) : null,
+          expiresAt: tokenPair.expiresAt, grantedBy: 'oauth-consent', autoRefresh: true, status: 'ACTIVE',
+        },
+        update: {
+          accessToken: encrypt(tokenPair.accessToken, encryptionKey),
+          refreshToken: tokenPair.refreshToken ? encrypt(tokenPair.refreshToken, encryptionKey) : null,
+          expiresAt: tokenPair.expiresAt, status: 'ACTIVE',
+        },
+      })
+
+      await prisma.auditLog.create({
+        data: { tenantId, userId, service: pending.service, action: 'token_created', details: { via: 'oauth-consent' }, ip: request.ip },
+      })
+
+      reply.redirect(`https://token-manager.${baseDomain}/user?consent=success&service=${pending.service}`)
     } catch (err: any) {
-      reply.redirect(`https://token-manager.${process.env.BASE_DOMAIN ?? 'twake.local'}/user?consent=error`)
+      console.error(`[callback/${pending.service}] Error:`, err.message)
+      reply.redirect(`https://token-manager.${baseDomain}/user?consent=error&message=${encodeURIComponent(err.message)}`)
     }
+  }
+
+  // Cozy Drive callback
+  app.get('/oauth/callback/cozy', async (request, reply) => {
+    await handleOAuthCallback(request, reply, (q) => ({ code: q.code, state: q.state }))
+  })
+
+  // OIDC callback (Tmail, Calendar)
+  app.get('/oauth/callback/oidc', async (request, reply) => {
+    await handleOAuthCallback(request, reply, (q) => ({ code: q.code, state: q.state }))
+  })
+
+  // Matrix SSO callback — Matrix passes loginToken instead of code
+  app.get('/oauth/callback/matrix', async (request, reply) => {
+    await handleOAuthCallback(request, reply, (q) => ({ code: q.loginToken, state: q.state }))
   })
 
   return { app, config, prisma }

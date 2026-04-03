@@ -8,7 +8,10 @@ export async function proxyRoutes(app: FastifyInstance) {
   const prisma = (app as any).prisma as PrismaClient
 
   // ALL /proxy/:service/* — Transparent proxy using umbrella token auth
-  app.all('/proxy/:service/*', async (request, reply) => {
+  // Note: WebDAV methods (PROPFIND, REPORT) require Fastify addHttpMethod() — added in server.ts
+  app.all('/proxy/:service/*', proxyHandler)
+
+  async function proxyHandler(request: any, reply: any) {
     const { service } = request.params as { service: string }
     const wildcard = (request.params as any)['*'] as string
 
@@ -62,12 +65,25 @@ export async function proxyRoutes(app: FastifyInstance) {
     const targetUrl = `${serviceToken.instanceUrl}/${wildcard}`
     let upstreamResponse: Response
     try {
+      const proxyHeaders: Record<string, string> = {
+        Authorization: `Bearer ${decryptedToken}`,
+      }
+      // Forward content-type and depth headers (important for WebDAV/CalDAV)
+      const ct = request.headers['content-type']
+      if (ct) proxyHeaders['Content-Type'] = ct
+      const depth = request.headers['depth']
+      if (depth) proxyHeaders['Depth'] = depth as string
+
+      // For non-JSON bodies (XML, text), use rawBody if available, else stringify
+      let proxyBody: any = undefined
+      if (!['GET', 'HEAD'].includes(request.method)) {
+        proxyBody = typeof request.body === 'string' ? request.body : JSON.stringify(request.body)
+      }
+
       upstreamResponse = await fetch(targetUrl, {
         method: request.method,
-        headers: {
-          Authorization: `Bearer ${decryptedToken}`,
-        },
-        body: ['GET', 'HEAD'].includes(request.method) ? undefined : (request.body as any),
+        headers: proxyHeaders,
+        body: proxyBody,
       })
     } catch {
       return reply.code(502).send({ error: 'service_unavailable' })
@@ -103,5 +119,5 @@ export async function proxyRoutes(app: FastifyInstance) {
         // Non-blocking, ignore errors
       }
     })
-  })
+  }
 }

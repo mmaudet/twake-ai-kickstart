@@ -12,6 +12,7 @@ export interface TokenResult {
     instanceUrl: string
   }
   redirectUrl?: string
+  state?: string
 }
 
 export class TokenService {
@@ -68,6 +69,7 @@ export class TokenService {
       return {
         status: 'consent_required',
         redirectUrl: authResult.redirectUrl,
+        state: authResult.state,
       }
     }
 

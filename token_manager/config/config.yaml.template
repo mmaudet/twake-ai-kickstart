@@ -29,22 +29,29 @@ services:
     oauth_redirect_uri: "https://token-manager-api.${BASE_DOMAIN}/oauth/callback/cozy"
 
   twake-mail:
-    auto_refresh: false
+    auto_refresh: true
     token_validity: 1h
     scopes:
-      - "Email/*"
-      - "EmailSubmission/*"
+      - openid
+      - email
+      - profile
     instance_url: "https://jmap.${BASE_DOMAIN}"
+    client_id: james
+    client_secret: james
+    oauth_redirect_uri: "https://token-manager-api.${BASE_DOMAIN}/oauth/callback/oidc"
 
   twake-calendar:
     auto_refresh: true
     token_validity: 8h
     refresh_token_validity: 90d
     scopes:
-      - "CalDAV:REPORT"
-      - "CalDAV:PUT"
-      - "CalDAV:GET"
+      - openid
+      - email
+      - profile
     instance_url: "https://tcalendar-side-service.${BASE_DOMAIN}"
+    client_id: openpaas
+    client_secret: openpaas
+    oauth_redirect_uri: "https://token-manager-api.${BASE_DOMAIN}/oauth/callback/oidc"
 
   twake-chat:
     auto_refresh: true

@@ -3,10 +3,12 @@ import type { Tenant } from '@prisma/client'
 import type { OidcUser } from '../middleware/auth.js'
 import type { TokenService } from '../services/token-service.js'
 import type { PrismaClient } from '@prisma/client'
+import type { PendingAuthStore } from '../services/pending-auth-store.js'
 
 export async function tokenRoutes(app: FastifyInstance) {
   const tokenService = (app as any).tokenService as TokenService
   const prisma = (app as any).prisma as PrismaClient
+  const pendingAuthStore = (app as any).pendingAuthStore as PendingAuthStore
   const config = (app as any).config
 
   // POST /tokens — Create/obtain a service token
@@ -24,6 +26,12 @@ export async function tokenRoutes(app: FastifyInstance) {
     )
 
     if (result.status === 'consent_required') {
+      // Persist pending auth state in DB so it survives container restarts
+      if (result.state && pendingAuthStore) {
+        await pendingAuthStore.save(result.state, service, targetUser ?? user.email, {
+          tenantId: tenant.id,
+        })
+      }
       reply.code(202).send({ status: 'consent_required', redirect_url: result.redirectUrl })
       return
     }
