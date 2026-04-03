@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import type { Tenant } from '@prisma/client'
 import type { ServiceConfig } from '../config.js'
 import type { AuthResult, ServiceConnector, TokenPair } from './interface.js'
@@ -5,6 +6,7 @@ import type { AuthResult, ServiceConnector, TokenPair } from './interface.js'
 interface MatrixLoginResponse {
   access_token: string
   user_id?: string
+  device_id?: string
 }
 
 interface MatrixRefreshResponse {
@@ -13,10 +15,16 @@ interface MatrixRefreshResponse {
   expires_in_ms?: number
 }
 
+interface PendingMatrixAuth {
+  instanceUrl: string
+  userId: string
+}
+
 export class MatrixConnector implements ServiceConnector {
   readonly serviceId = 'twake-chat'
 
   private readonly _config: ServiceConfig
+  readonly _pendingAuths = new Map<string, PendingMatrixAuth>()
 
   constructor(config: ServiceConfig) {
     this._config = config
@@ -26,13 +34,34 @@ export class MatrixConnector implements ServiceConnector {
     return this._config.instance_url ?? ''
   }
 
-  async authenticate(_userId: string, tenant: Tenant, oidcToken: string): Promise<AuthResult> {
-    const instanceUrl = this.getInstanceUrl(_userId, tenant)
+  async authenticate(userId: string, tenant: Tenant, _oidcToken: string): Promise<AuthResult> {
+    const instanceUrl = this.getInstanceUrl(userId, tenant)
 
-    const resp = await fetch(`${instanceUrl}/_matrix/client/v3/login`, {
+    // Matrix SSO flow: redirect user to Synapse SSO, which redirects to LemonLDAP,
+    // then back to Synapse callback, then to our callback with a loginToken
+    const state = randomBytes(16).toString('hex')
+    const callbackUrl = this._config.oauth_redirect_uri ??
+      `https://token-manager-api.twake.local/oauth/callback/matrix`
+
+    this._pendingAuths.set(state, { instanceUrl, userId })
+
+    // The redirect URL is Synapse's SSO redirect endpoint
+    const redirectUrl = `${instanceUrl}/_matrix/client/v3/login/sso/redirect?redirectUrl=${encodeURIComponent(callbackUrl + '?state=' + state)}`
+
+    return { type: 'redirect', redirectUrl, state }
+  }
+
+  async handleCallback(loginToken: string, state: string): Promise<TokenPair> {
+    const pending = this._pendingAuths.get(state)
+    if (!pending) {
+      throw new Error(`No pending Matrix auth found for state: ${state}`)
+    }
+    this._pendingAuths.delete(state)
+
+    const resp = await fetch(`${pending.instanceUrl}/_matrix/client/v3/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ type: 'm.login.token', token: oidcToken }),
+      body: JSON.stringify({ type: 'm.login.token', token: loginToken }),
     })
 
     if (!resp.ok) {
@@ -43,11 +72,8 @@ export class MatrixConnector implements ServiceConnector {
     const data = (await resp.json()) as MatrixLoginResponse
 
     return {
-      type: 'direct',
-      tokenPair: {
-        accessToken: data.access_token,
-        expiresAt: new Date(Date.now() + this._config.token_validity_ms),
-      },
+      accessToken: data.access_token,
+      expiresAt: new Date(Date.now() + this._config.token_validity_ms),
     }
   }
 

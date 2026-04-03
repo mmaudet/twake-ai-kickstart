@@ -47,18 +47,37 @@ export async function validateOidcToken(
       token,
       isAdmin: groups.some((g) => g.includes(ADMIN_GROUP)),
     }
-  } catch {
+  } catch (err) {
+    console.error('[auth] JWT verification failed:', (err as Error).message)
     return null
   }
 }
 
 let cachedJwks: ReturnType<typeof jose.createRemoteJWKSet> | null = null
+let jwksInitPromise: Promise<void> | null = null
+
+async function initJwks(oidcIssuer: string) {
+  if (cachedJwks) return
+  try {
+    // Discover JWKS URI from OIDC configuration
+    const discoveryUrl = `${oidcIssuer}/.well-known/openid-configuration`
+    const res = await fetch(discoveryUrl)
+    const config = await res.json() as { jwks_uri: string }
+    cachedJwks = jose.createRemoteJWKSet(new URL(config.jwks_uri))
+  } catch {
+    // Fallback to common paths
+    cachedJwks = jose.createRemoteJWKSet(new URL(`${oidcIssuer}/oauth2/jwks`))
+  }
+}
 
 async function defaultJwtVerify(token: string, oidcIssuer: string) {
-  if (!cachedJwks) {
-    cachedJwks = jose.createRemoteJWKSet(new URL(`${oidcIssuer}/.well-known/jwks.json`))
+  if (!jwksInitPromise) {
+    jwksInitPromise = initJwks(oidcIssuer)
   }
-  return jose.jwtVerify(token, cachedJwks, { issuer: oidcIssuer })
+  await jwksInitPromise
+  // Accept issuer with or without trailing slash
+  const issuers = [oidcIssuer, oidcIssuer.endsWith('/') ? oidcIssuer.slice(0, -1) : oidcIssuer + '/']
+  return jose.jwtVerify(token, cachedJwks!, { issuer: issuers })
 }
 
 export function authHook(oidcIssuer: string) {

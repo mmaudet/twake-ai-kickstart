@@ -8,6 +8,7 @@ export interface ServiceConfig {
   scopes: string[]
   instance_url?: string
   instance_url_pattern?: string
+  auth_url_pattern?: string
   oauth_redirect_uri?: string
 }
 

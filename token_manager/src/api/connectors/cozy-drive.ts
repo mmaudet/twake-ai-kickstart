@@ -33,8 +33,15 @@ export class CozyDriveConnector implements ServiceConnector {
     return pattern.replace('{username}', username)
   }
 
+  /** Cozy auth endpoints live on the base instance (user1.twake.local), not the drive app */
+  private getAuthUrl(userId: string, _tenant: Tenant): string {
+    const pattern = this._config.auth_url_pattern ?? this._config.instance_url_pattern ?? ''
+    const username = userId.includes('@') ? userId.split('@')[0] : userId
+    return pattern.replace('{username}', username)
+  }
+
   async authenticate(userId: string, tenant: Tenant, _oidcToken: string): Promise<AuthResult> {
-    const instanceUrl = this.getInstanceUrl(userId, tenant)
+    const instanceUrl = this.getAuthUrl(userId, tenant)
     const redirectUri = this._config.oauth_redirect_uri ?? ''
     const scopes = this._config.scopes.join(' ')
 

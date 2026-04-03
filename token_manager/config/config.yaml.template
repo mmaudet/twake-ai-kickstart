@@ -25,6 +25,7 @@ services:
     scopes:
       - io.cozy.files
     instance_url_pattern: "https://{username}-drive.${BASE_DOMAIN}"
+    auth_url_pattern: "https://{username}.${BASE_DOMAIN}"
     oauth_redirect_uri: "https://token-manager-api.${BASE_DOMAIN}/oauth/callback/cozy"
 
   twake-mail:
@@ -52,3 +53,4 @@ services:
     scopes:
       - "m.room.message"
     instance_url: "https://matrix.${BASE_DOMAIN}"
+    oauth_redirect_uri: "https://token-manager-api.${BASE_DOMAIN}/oauth/callback/matrix"

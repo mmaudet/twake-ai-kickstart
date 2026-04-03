@@ -13,6 +13,18 @@ services:
       BASE_DOMAIN: ${BASE_DOMAIN}
       CONFIG_PATH: /app/config/config.yaml
       NODE_EXTRA_CA_CERTS: /usr/local/share/ca-certificates/root-ca.crt
+    extra_hosts:
+      - "auth.${BASE_DOMAIN}:172.27.0.100"
+      - "jmap.${BASE_DOMAIN}:172.27.0.100"
+      - "matrix.${BASE_DOMAIN}:172.27.0.100"
+      - "tcalendar-side-service.${BASE_DOMAIN}:172.27.0.100"
+      - "user1.${BASE_DOMAIN}:172.27.0.100"
+      - "user2.${BASE_DOMAIN}:172.27.0.100"
+      - "user3.${BASE_DOMAIN}:172.27.0.100"
+      - "user1-drive.${BASE_DOMAIN}:172.27.0.100"
+      - "user2-drive.${BASE_DOMAIN}:172.27.0.100"
+      - "user3-drive.${BASE_DOMAIN}:172.27.0.100"
+      - "token-manager-api.${BASE_DOMAIN}:172.27.0.100"
     volumes:
       - ../twake_auth/traefik/ssl/root-ca.crt:/usr/local/share/ca-certificates/root-ca.crt:ro
       - ./config:/app/config:ro
