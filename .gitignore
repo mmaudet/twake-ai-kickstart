@@ -12,7 +12,7 @@ visio_app/config/nginx.conf
 linshare_app/config/backend/linshare.extra.properties
 linshare_app/config/user-ui/config.js
 drive_app/config/cozy.yaml
-chat_app/synapse/homeserver-postgres.yaml
+chat_app/synapse/homeserver.yaml
 chat_app/synapse/wellknownclient.conf
 chat_app/synapse/wellknownserver.conf
 chat_app/synapse/.env
