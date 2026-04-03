@@ -5,8 +5,8 @@ import { apiFetch } from '@/lib/api'
 import { authHeaders } from '@/lib/auth'
 
 interface AuditLog {
-  timestamp: string
-  user: string
+  createdAt: string
+  userId: string
   service?: string
   action: string
   ip?: string
@@ -76,9 +76,9 @@ export default function AuditPage() {
               {logs.map((log, i) => (
                 <tr key={i} className="hover:bg-gray-50">
                   <td className="px-4 py-3 text-gray-500 whitespace-nowrap">
-                    {new Date(log.timestamp).toLocaleString()}
+                    {new Date(log.createdAt).toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">{log.user}</td>
+                  <td className="px-4 py-3 text-gray-700">{log.userId}</td>
                   <td className="px-4 py-3 font-mono text-gray-700">
                     {log.service ?? '—'}
                   </td>

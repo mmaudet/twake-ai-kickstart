@@ -51,11 +51,12 @@ export default function AdminDashboard() {
     }
   }
 
-  const active = tokens.filter((t) => t.status === 'ACTIVE').length
-  const expired = tokens.filter(
+  const visibleTokens = tokens.filter((t) => t.status !== 'REVOKED')
+  const active = visibleTokens.filter((t) => t.status === 'ACTIVE').length
+  const expired = visibleTokens.filter(
     (t) => t.status === 'EXPIRED' || t.status === 'REFRESH_FAILED',
   ).length
-  const umbrella = tokens.length
+  const umbrella = visibleTokens.length
 
   return (
     <div>
@@ -71,7 +72,7 @@ export default function AdminDashboard() {
       )}
 
       <StatsBar active={active} expired={expired} umbrella={umbrella} />
-      <TokenTable tokens={tokens} onRevoke={handleRevoke} onRefresh={handleRefresh} />
+      <TokenTable tokens={visibleTokens} onRevoke={handleRevoke} onRefresh={handleRefresh} />
     </div>
   )
 }
