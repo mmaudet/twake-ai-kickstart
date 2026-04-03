@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://token-manager-api.twake.local'
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'https://token-manager-api.twake.local'
+const API_URL = `${API_BASE}/api/v1`
 
 export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {

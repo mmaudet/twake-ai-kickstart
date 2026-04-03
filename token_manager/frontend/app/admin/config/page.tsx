@@ -13,10 +13,18 @@ export default function ConfigPage() {
 
   const loadConfig = useCallback(async () => {
     try {
-      const data = await apiFetch<{ services: ServiceConfig[] }>('/admin/config', {
+      // API returns { "twake-drive": {...}, "twake-mail": {...}, ... }
+      const data = await apiFetch<Record<string, any>>('/admin/config', {
         headers: authHeaders(),
       })
-      setServices(data.services ?? [])
+      // Transform to array with name field
+      const list = Object.entries(data).map(([name, cfg]) => ({
+        name,
+        auto_refresh: cfg.auto_refresh ?? false,
+        token_validity: cfg.token_validity ?? '1h',
+        refresh_margin: cfg.refresh_before_expiry ?? '15m',
+      }))
+      setServices(list)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load config')
     }
