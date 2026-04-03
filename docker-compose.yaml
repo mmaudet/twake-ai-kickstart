@@ -6,3 +6,4 @@ include:
   - linshare_app/docker-compose.yml
   - twake_db/docker-compose.yml
   - twake_auth/docker-compose.yml
+  - token_manager/docker-compose.yml

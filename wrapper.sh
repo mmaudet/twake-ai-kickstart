@@ -8,11 +8,11 @@ set -e
 BASE_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # All known repos
-ALL_REPOS="twake_db twake_auth drive_app onlyoffice_app visio_app calendar_app chat_app mail_app"
+ALL_REPOS="twake_db twake_auth drive_app onlyoffice_app visio_app calendar_app chat_app mail_app token_manager"
 
 # Order of operations
-START_ORDER="twake_db twake_auth drive_app onlyoffice_app visio_app calendar_app chat_app mail_app"
-STOP_ORDER="mail_app chat_app calendar_app visio_app onlyoffice_app drive_app twake_auth twake_db"
+START_ORDER="twake_db twake_auth drive_app token_manager onlyoffice_app visio_app calendar_app chat_app mail_app"
+STOP_ORDER="mail_app chat_app calendar_app visio_app onlyoffice_app token_manager drive_app twake_auth twake_db"
 
 # Lookup helpers (Bash 3 compatible, no associative arrays)
 get_project_name() {
@@ -35,9 +35,10 @@ get_repo_dir() {
 
 get_dep() {
     case "$1" in
-        chat_app) echo "lemonldap-ng" ;;
-        mail_app) echo "lemonldap-ng" ;;
-        *)        echo "" ;;
+        chat_app)      echo "lemonldap-ng" ;;
+        mail_app)      echo "lemonldap-ng" ;;
+        token_manager) echo "lemonldap-ng" ;;
+        *)             echo "" ;;
     esac
 }
 
