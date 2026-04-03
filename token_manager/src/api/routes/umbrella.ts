@@ -82,7 +82,12 @@ export async function umbrellaRoutes(app: FastifyInstance) {
     const { token } = request.params as { token: string }
 
     try {
-      await umbrellaService.revokeUmbrellaToken(token)
+      // Try revoke by ID first (from frontend list), then by raw token (from CLI/SDK)
+      try {
+        await umbrellaService.revokeById(token)
+      } catch {
+        await umbrellaService.revokeUmbrellaToken(token)
+      }
 
       await prisma.auditLog.create({
         data: {

@@ -105,4 +105,15 @@ export class UmbrellaService {
       data: { revokedAt: new Date() },
     })
   }
+
+  async revokeById(id: string): Promise<void> {
+    const record = await this.prisma.umbrellaToken.findUnique({ where: { id } })
+    if (!record) {
+      throw new Error('Umbrella token not found')
+    }
+    await this.prisma.umbrellaToken.update({
+      where: { id },
+      data: { revokedAt: new Date() },
+    })
+  }
 }
