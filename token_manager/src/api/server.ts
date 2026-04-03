@@ -5,6 +5,8 @@ import { readFileSync } from 'node:fs'
 import { parseConfig } from './config.js'
 import { healthRoutes } from './routes/health.js'
 import { tokenRoutes } from './routes/tokens.js'
+import { umbrellaRoutes } from './routes/umbrella.js'
+import { proxyRoutes } from './routes/proxy.js'
 import { authHook } from './middleware/auth.js'
 import { tenantHook } from './middleware/tenant.js'
 import { TokenService } from './services/token-service.js'
@@ -83,6 +85,26 @@ export async function buildApp() {
     protectedApp.addHook('onRequest', authHook(config.oidc.issuer))
     protectedApp.addHook('onRequest', tenantHook(prisma))
     await protectedApp.register(tokenRoutes, { prefix: '/api/v1' })
+    await protectedApp.register(umbrellaRoutes, { prefix: '/api/v1' })
+  })
+
+  // Proxy routes — separate scope, uses umbrella token auth (not standard OIDC auth)
+  await app.register(proxyRoutes, { prefix: '/api/v1' })
+
+  // OAuth callback — public, no auth
+  app.get('/oauth/callback/cozy', async (request, reply) => {
+    const { code, state } = request.query as { code: string; state: string }
+    const cozyConnector = connectors.get('twake-drive') as any
+    if (!cozyConnector?.handleCallback) {
+      reply.code(400).send({ error: 'cozy_connector_not_configured' })
+      return
+    }
+    try {
+      await cozyConnector.handleCallback(code, state)
+      reply.redirect(`https://token-manager.${process.env.BASE_DOMAIN ?? 'twake.local'}/user?consent=success`)
+    } catch (err: any) {
+      reply.redirect(`https://token-manager.${process.env.BASE_DOMAIN ?? 'twake.local'}/user?consent=error`)
+    }
   })
 
   return { app, config, prisma }
