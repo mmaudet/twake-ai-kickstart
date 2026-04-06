@@ -504,7 +504,7 @@
          "oidcRPMetaDataOptionsLogoutType": "back",
          "oidcRPMetaDataOptionsLogoutUrl": "https://oauthcallback.twake.local/oidc/default/logout",
          "oidcRPMetaDataOptionsNoJwtHeader": 0,
-         "oidcRPMetaDataOptionsPostLogoutRedirectUris": "https://user2-home.twake.local/",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris": "https://user1-home.twake.local/ https://user2-home.twake.local/ https://user3-home.twake.local/",
          "oidcRPMetaDataOptionsPublic": 0,
          "oidcRPMetaDataOptionsRedirectUris" : "https://oauthcallback.twake.local/oidc/redirect",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
