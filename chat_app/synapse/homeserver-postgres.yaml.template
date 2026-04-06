@@ -136,7 +136,7 @@ oidc_providers:
     issuer: "https://auth.${BASE_DOMAIN}/"
     client_id: "matrix1"
     client_secret: "matrix1"
-    scopes: ["openid", "profile", "email", "phone"]
+    scopes: ["openid", "profile", "email"]
     discover: true
     backchannel_logout_enabled: true
     backchannel_logout_is_soft: true
