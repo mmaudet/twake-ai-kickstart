@@ -398,15 +398,14 @@
       "linshare" : {
          "domain_discriminator" : "domain_discriminator",
          "email" : "mail",
-         "first_name" : "uid",
+         "first_name" : "givenName",
          "last_name" : "sn",
-         "name" : "givenName",
+         "name" : "cn",
          "preferred_username" : "uid"
       },
       "meet" : {
          "email" : "mail",
          "name" : "cn",
-         "oidc_state" : "state",
          "preferred_username" : "uid"
       }
    },
@@ -443,7 +442,7 @@
          "oidcRPMetaDataOptionsNoJwtHeader" : 0,
          "oidcRPMetaDataOptionsPostLogoutRedirectUris" : "https://calendar.${BASE_DOMAIN}/calendar https://contacts.${BASE_DOMAIN}/contacts https://account.${BASE_DOMAIN}/account https://calendar-ng.${BASE_DOMAIN}?logout=1",
          "oidcRPMetaDataOptionsPublic" : 1,
-         "oidcRPMetaDataOptionsRedirectUris" : "https://calendar.${BASE_DOMAIN}/calendar/auth/oidc/callback https://contacts.${BASE_DOMAIN}/contacts/auth/oidc/callback https://account.${BASE_DOMAIN}/account/auth/oidc/callback https://calendar-ng.${BASE_DOMAIN}/callback",
+         "oidcRPMetaDataOptionsRedirectUris" : "https://calendar.${BASE_DOMAIN}/calendar/auth/oidc/callback https://contacts.${BASE_DOMAIN}/contacts/auth/oidc/callback https://account.${BASE_DOMAIN}/account/auth/oidc/callback https://calendar-ng.${BASE_DOMAIN}/callback https://calendar.${BASE_DOMAIN}/calendar/assets/auth/silent-renew.html https://contacts.${BASE_DOMAIN}/contacts/assets/auth/silent-renew.html https://account.${BASE_DOMAIN}/account/assets/auth/silent-renew.html",
          "oidcRPMetaDataOptionsRefreshToken" : 0,
          "oidcRPMetaDataOptionsRefreshTokenRotation" : 0,
          "oidcRPMetaDataOptionsRequirePKCE" : 1,
