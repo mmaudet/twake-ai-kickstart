@@ -9,6 +9,7 @@ services:
       - SSODOMAIN=${BASE_DOMAIN}
       - LDAP_BASE_DN=${LDAP_BASE_DN}
       - LOGLEVEL=debug
+      - LOGGER=stderr
       - PROTECTION=none
       - PORTAL=https://auth.${BASE_DOMAIN}
     labels:
