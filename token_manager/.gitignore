@@ -3,3 +3,4 @@ dist/
 .next/
 config/config.yaml
 *.env.local
+.env

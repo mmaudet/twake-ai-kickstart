@@ -24,7 +24,7 @@ services:
     refresh_token_validity: 30d
     scopes:
       - io.cozy.files
-    instance_url_pattern: "https://{username}-drive.${BASE_DOMAIN}"
+    instance_url_pattern: "https://{username}.${BASE_DOMAIN}"
     auth_url_pattern: "https://{username}.${BASE_DOMAIN}"
     oauth_redirect_uri: "https://token-manager-api.${BASE_DOMAIN}/oauth/callback/cozy"
 

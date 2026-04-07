@@ -20,36 +20,38 @@ export async function proxyRoutes(app: FastifyInstance) {
     const rawToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null
 
     if (!rawToken) {
-      return reply.code(401).send({ error: 'invalid_umbrella_token' })
+      return reply.code(401).send({ error: 'missing_token' })
     }
 
-    // 2. Resolve via umbrellaService.resolveUmbrellaToken()
-    const resolved = await umbrellaService.resolveUmbrellaToken(rawToken)
+    let serviceToken: any
 
-    // 3. If null: 401
-    if (!resolved) {
-      return reply.code(401).send({ error: 'invalid_umbrella_token' })
-    }
-
-    // 4. Check scope includes the service
-    if (!resolved.scopes.includes(service)) {
-      return reply.code(403).send({ error: 'scope_not_granted', service })
-    }
-
-    // 5. Look up ServiceToken in DB by (tenantId, userId, service)
-    const serviceToken = await prisma.serviceToken.findUnique({
-      where: {
-        tenantId_userId_service: {
-          tenantId: resolved.tenantId,
-          userId: resolved.userId,
-          service,
+    if (rawToken.startsWith('stk_')) {
+      // Service bearer key — direct lookup
+      serviceToken = await prisma.serviceToken.findUnique({ where: { bearerKey: rawToken } })
+      if (!serviceToken || serviceToken.status !== 'ACTIVE' || serviceToken.service !== service) {
+        return reply.code(401).send({ error: 'invalid_token' })
+      }
+    } else {
+      // Umbrella token (twt_...) — resolve via umbrellaService
+      const resolved = await umbrellaService.resolveUmbrellaToken(rawToken)
+      if (!resolved) {
+        return reply.code(401).send({ error: 'invalid_token' })
+      }
+      if (!resolved.scopes.includes(service)) {
+        return reply.code(403).send({ error: 'scope_not_granted', service })
+      }
+      serviceToken = await prisma.serviceToken.findUnique({
+        where: {
+          tenantId_userId_service: {
+            tenantId: resolved.tenantId,
+            userId: resolved.userId,
+            service,
+          },
         },
-      },
-    })
-
-    // 6. If missing or not ACTIVE: 404
-    if (!serviceToken || serviceToken.status !== 'ACTIVE') {
-      return reply.code(404).send({ error: 'no_token', service })
+      })
+      if (!serviceToken || serviceToken.status !== 'ACTIVE') {
+        return reply.code(404).send({ error: 'no_token', service })
+      }
     }
 
     // 7. Decrypt accessToken
@@ -92,7 +94,7 @@ export async function proxyRoutes(app: FastifyInstance) {
     // 9. Forward response (status, headers, body)
     reply.code(upstreamResponse.status)
     upstreamResponse.headers.forEach((value, key) => {
-      if (!['transfer-encoding', 'connection'].includes(key.toLowerCase())) {
+      if (!['transfer-encoding', 'connection', 'content-encoding', 'content-length'].includes(key.toLowerCase())) {
         reply.header(key, value)
       }
     })
@@ -108,8 +110,8 @@ export async function proxyRoutes(app: FastifyInstance) {
         })
         await prisma.auditLog.create({
           data: {
-            tenantId: resolved.tenantId,
-            userId: resolved.userId,
+            tenantId: serviceToken.tenantId,
+            userId: serviceToken.userId,
             service,
             action: 'proxy_request',
             ip: request.ip,

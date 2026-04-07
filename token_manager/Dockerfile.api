@@ -15,4 +15,4 @@ RUN npm ci --omit=dev && npx prisma generate
 COPY --from=builder /app/dist ./dist
 COPY config ./config
 EXPOSE 3100
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node dist/api/server.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && node dist/api/server.js"]

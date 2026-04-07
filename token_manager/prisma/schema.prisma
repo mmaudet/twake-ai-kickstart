@@ -39,6 +39,7 @@ model ServiceToken {
   lastUsedAt    DateTime?
   lastRefreshAt DateTime?
   status        TokenStatus @default(ACTIVE)
+  bearerKey     String?     @unique
   tenant        Tenant      @relation(fields: [tenantId], references: [id])
 
   @@unique([tenantId, userId, service])
@@ -80,8 +81,9 @@ model AuditLog {
   service   String?
   action    String
   details   Json?
-  ip        String?
-  createdAt DateTime @default(now())
+  ip          String?
+  createdAt   DateTime @default(now())
+  userCleared Boolean  @default(false)
 
   @@index([tenantId, userId])
   @@index([createdAt])

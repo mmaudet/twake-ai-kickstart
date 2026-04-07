@@ -34,3 +34,8 @@ export function generateUmbrellaToken(): string {
   const bytes = randomBytes(24)
   return `twt_${bytes.toString('hex')}`
 }
+
+export function generateServiceBearerKey(): string {
+  const bytes = randomBytes(24)
+  return `stk_${bytes.toString('hex')}`
+}

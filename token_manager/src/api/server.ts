@@ -18,7 +18,7 @@ import { CalendarConnector } from './connectors/calendar.js'
 import { MatrixConnector } from './connectors/matrix.js'
 import type { ServiceConnector } from './connectors/interface.js'
 import { PendingAuthStore } from './services/pending-auth-store.js'
-import { encrypt } from './services/crypto.js'
+import { encrypt, generateServiceBearerKey } from './services/crypto.js'
 
 export async function buildApp() {
   // Load and parse config
@@ -76,6 +76,9 @@ export async function buildApp() {
     app.addHttpMethod(method, { hasBody: true })
   }
 
+  // Accept XML and text bodies for CalDAV/WebDAV proxy
+  app.addContentTypeParser(['application/xml', 'text/xml'], { parseAs: 'string' }, (_req: any, body: string, done: any) => done(null, body))
+
   // Register CORS
   await app.register(cors)
 
@@ -128,6 +131,7 @@ export async function buildApp() {
       const tenantId = pending.data.tenantId as string
       const userId = pending.userId
 
+      const bearerKey = generateServiceBearerKey()
       await prisma.serviceToken.upsert({
         where: { tenantId_userId_service: { tenantId, userId, service: pending.service } },
         create: {
@@ -136,11 +140,14 @@ export async function buildApp() {
           accessToken: encrypt(tokenPair.accessToken, encryptionKey),
           refreshToken: tokenPair.refreshToken ? encrypt(tokenPair.refreshToken, encryptionKey) : null,
           expiresAt: tokenPair.expiresAt, grantedBy: 'oauth-consent', autoRefresh: true, status: 'ACTIVE',
+          bearerKey,
         },
         update: {
+          instanceUrl: connector.getInstanceUrl(userId, { id: tenantId } as any),
           accessToken: encrypt(tokenPair.accessToken, encryptionKey),
           refreshToken: tokenPair.refreshToken ? encrypt(tokenPair.refreshToken, encryptionKey) : null,
           expiresAt: tokenPair.expiresAt, status: 'ACTIVE',
+          bearerKey,
         },
       })
 
@@ -148,10 +155,12 @@ export async function buildApp() {
         data: { tenantId, userId, service: pending.service, action: 'token_created', details: { via: 'oauth-consent' }, ip: request.ip },
       })
 
-      reply.redirect(`https://token-manager.${baseDomain}/tokens?consent=success&service=${pending.service}`)
+      const username = userId.split('@')[0]
+      reply.redirect(`https://${username}-token-manager.${baseDomain}/#/tokens?consent=success&service=${pending.service}`)
     } catch (err: any) {
       console.error(`[callback/${pending.service}] Error:`, err.message)
-      reply.redirect(`https://token-manager.${baseDomain}/tokens?consent=error&message=${encodeURIComponent(err.message)}`)
+      const username = pending.userId.split('@')[0]
+      reply.redirect(`https://${username}-token-manager.${baseDomain}/#/tokens?consent=error&message=${encodeURIComponent(err.message)}`)
     }
   }
 

@@ -12,7 +12,7 @@ set +a
 
 if [ "$ACTION" = "up" ]; then
   echo "Processing configuration..."
-  envsubst '$BASE_DOMAIN' < config/config.yaml.template > config/config.yaml
+  envsubst '$BASE_DOMAIN $TOKEN_ENCRYPTION_KEY' < config/config.yaml.template > config/config.yaml
 
   if [ ! -f "config/config.yaml" ]; then
     echo "Failed to create configuration file"
@@ -20,4 +20,5 @@ if [ "$ACTION" = "up" ]; then
   fi
 fi
 
-sudo docker compose -p twake-token-manager --env-file ../.env "$@"
+sudo -E BASE_DOMAIN="$BASE_DOMAIN" TOKEN_ENCRYPTION_KEY="$TOKEN_ENCRYPTION_KEY" \
+  docker compose --env-file ../.env "$@"

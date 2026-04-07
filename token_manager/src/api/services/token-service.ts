@@ -10,6 +10,7 @@ export interface TokenResult {
     expiresAt: Date
     service: string
     instanceUrl: string
+    bearerKey?: string
   }
   redirectUrl?: string
   state?: string
@@ -58,6 +59,7 @@ export class TokenService {
           expiresAt: existing.expiresAt,
           service: existing.service,
           instanceUrl: existing.instanceUrl,
+          bearerKey: existing.bearerKey ?? undefined,
         },
       }
     }

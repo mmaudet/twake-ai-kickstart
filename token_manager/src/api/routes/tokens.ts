@@ -4,10 +4,12 @@ import type { OidcUser } from '../middleware/auth.js'
 import type { TokenService } from '../services/token-service.js'
 import type { PrismaClient } from '@prisma/client'
 import type { PendingAuthStore } from '../services/pending-auth-store.js'
+import { decrypt, generateServiceBearerKey } from '../services/crypto.js'
 
 export async function tokenRoutes(app: FastifyInstance) {
   const tokenService = (app as any).tokenService as TokenService
   const prisma = (app as any).prisma as PrismaClient
+  const encryptionKey = process.env.TOKEN_ENCRYPTION_KEY ?? '0'.repeat(64)
   const pendingAuthStore = (app as any).pendingAuthStore as PendingAuthStore
   const config = (app as any).config
 
@@ -36,10 +38,21 @@ export async function tokenRoutes(app: FastifyInstance) {
       return
     }
 
+    // Generate short bearer key if not already set
+    const userId = targetUser ?? user.email
+    let bearerKey = result.token!.bearerKey
+    if (!bearerKey) {
+      bearerKey = generateServiceBearerKey()
+      await prisma.serviceToken.update({
+        where: { tenantId_userId_service: { tenantId: tenant.id, userId, service } },
+        data: { bearerKey },
+      })
+    }
+
     await prisma.auditLog.create({
       data: {
         tenantId: tenant.id,
-        userId: targetUser ?? user.email,
+        userId,
         service,
         action: 'token_created',
         ip: request.ip,
@@ -47,8 +60,7 @@ export async function tokenRoutes(app: FastifyInstance) {
     })
 
     return {
-      access_token: result.token!.accessToken,
-      refresh_token: result.token!.refreshToken,
+      access_token: bearerKey,
       expires_at: result.token!.expiresAt.toISOString(),
       service: result.token!.service,
       instance_url: result.token!.instanceUrl,
@@ -133,6 +145,7 @@ export async function tokenRoutes(app: FastifyInstance) {
     return {
       service: token.service,
       status: token.status,
+      access_token: token.bearerKey ?? decrypt(token.accessToken, encryptionKey),
       expires_at: token.expiresAt.toISOString(),
       instance_url: token.instanceUrl,
       granted_by: token.grantedBy,
@@ -245,17 +258,30 @@ export async function tokenRoutes(app: FastifyInstance) {
     return { status: 'updated' }
   })
 
-  // GET /audit — User's own audit log (no admin check)
+  // GET /audit — User's own audit log (excludes cleared entries)
   app.get('/audit', async (request) => {
     const user = (request as any).user as OidcUser
     const tenant = (request as any).tenant as Tenant
     const { limit, offset } = request.query as { limit?: string; offset?: string }
     return prisma.auditLog.findMany({
-      where: { tenantId: tenant.id, userId: user.email },
+      where: { tenantId: tenant.id, userId: user.email, userCleared: false },
       orderBy: { createdAt: 'desc' },
       take: parseInt(limit ?? '50', 10),
       skip: parseInt(offset ?? '0', 10),
     })
+  })
+
+  // DELETE /audit — Hide user's audit log (admin still sees them)
+  app.delete('/audit', async (request, reply) => {
+    const user = (request as any).user as OidcUser
+    const tenant = (request as any).tenant as Tenant
+
+    await prisma.auditLog.updateMany({
+      where: { tenantId: tenant.id, userId: user.email, userCleared: false },
+      data: { userCleared: true },
+    })
+
+    reply.code(204).send()
   })
 
   // GET /admin/users — List distinct users with token counts (admin only)
@@ -337,5 +363,22 @@ export async function tokenRoutes(app: FastifyInstance) {
       take,
       skip,
     })
+  })
+
+  // DELETE /admin/audit — Clear all audit logs (admin only)
+  app.delete('/admin/audit', async (request, reply) => {
+    const user = (request as any).user as OidcUser
+    const tenant = (request as any).tenant as Tenant
+
+    if (!user.isAdmin) {
+      reply.code(403).send({ error: 'forbidden' })
+      return
+    }
+
+    await prisma.auditLog.deleteMany({
+      where: { tenantId: tenant.id },
+    })
+
+    reply.code(204).send()
   })
 }
