@@ -138,8 +138,7 @@ oidc_providers:
     client_secret: "matrix1"
     scopes: ["openid", "profile", "email"]
     discover: true
-    backchannel_logout_enabled: true
-    backchannel_logout_is_soft: true
+    backchannel_logout_enabled: false
 
     user_profile_method: "userinfo_endpoint"
     user_mapping_provider:
