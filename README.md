@@ -21,7 +21,7 @@
 
 - **Chat**: Real-time messaging powered by Matrix/Synapse and [Twake Chat](https://twake-chat.com/)
 - **Email**: Full JMAP email via [Twake Mail](https://twake-mail.com/)
-- **File Sharing**: Secure file transfer and storage with LinShare
+- **File Sharing**: Secure file transfer and storage with [LinShare](https://linshare.app/)
 - **Document Editing**: Collaborative editing with OnlyOffice
 - **Calendar**: Shared calendaring
 - **Video Conferencing**: WebRTC meetings with LiveKit
