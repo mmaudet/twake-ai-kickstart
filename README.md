@@ -23,7 +23,7 @@
 - **Email**: Full JMAP email via [Twake Mail](https://twake-mail.com/)
 - **File Sharing**: Secure file transfer and storage with [LinShare](https://linshare.app/)
 - **Document Editing**: Collaborative editing with OnlyOffice
-- **Calendar**: Shared calendaring
+- **Calendar**: Shared [calendaring](https://github.com/linagora/twake-calendar-frontend)
 - **Video Conferencing**: WebRTC meetings with LiveKit
 - **Personal Cloud**: Individual workspace powered by Cozy Stack
 - **Single Sign-On**: Unified authentication with LemonLDAP::NG
