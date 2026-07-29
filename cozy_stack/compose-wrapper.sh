@@ -40,7 +40,11 @@ splice() {
 
 if [ "$ACTION" = "up" ] || [ "$ACTION" = "render" ]; then
   echo "Processing configuration..."
-  envsubst '$BASE_DOMAIN' < ./config/cozy.yaml.template > config/cozy.yaml
+  # EXTRA_CSP_{FRAME,CONNECT}_DOMAINS default to empty when unset so envsubst
+  # renders no extra entries — the CSP allowlist keeps its baseline domains.
+  export EXTRA_CSP_FRAME_DOMAINS="${EXTRA_CSP_FRAME_DOMAINS:-}"
+  export EXTRA_CSP_CONNECT_DOMAINS="${EXTRA_CSP_CONNECT_DOMAINS:-}"
+  envsubst '$BASE_DOMAIN $EXTRA_CSP_FRAME_DOMAINS $EXTRA_CSP_CONNECT_DOMAINS' < ./config/cozy.yaml.template > config/cozy.yaml
 
   flags_file=$(pick_default default-flags)
   sharing_file=$(pick_default default-sharing)

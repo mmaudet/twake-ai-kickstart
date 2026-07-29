@@ -449,13 +449,21 @@ flagship:
     - 3AKXFMV43J.io.cozy.drive.mobile
     - 3AKXFMV43J.io.cozy.flagship.mobile
 
-# Allowed domains for the CSP policy used in hosted web applications
+# Allowed domains for the CSP policy used in hosted web applications.
+#
+# EXTRA_CSP_FRAME_DOMAINS / EXTRA_CSP_CONNECT_DOMAINS are opt-in extension
+# points (space-separated https:// URLs) for bridging this kickstart against
+# an existing platform on another domain. Default empty. Set in .env, e.g.
+#   EXTRA_CSP_FRAME_DOMAINS="https://*.dev-twake.maudet.cloud"
+#   EXTRA_CSP_CONNECT_DOMAINS="https://*.dev-twake.maudet.cloud"
+# to let apps hosted on this stack iframe / XHR the other platform's services.
 csp_allowlist:
   # script: https://allowed1.domain.com/ https://allowed2.domain.com/
   # img:    https://allowed.domain.com/
   # style:  https://allowed.domain.com/
   # font:   https://allowed.domain.com/
-  frame: "https://linshare.${BASE_DOMAIN} https://mail.${BASE_DOMAIN}"
+  frame:   "https://linshare.${BASE_DOMAIN} https://mail.${BASE_DOMAIN} ${EXTRA_CSP_FRAME_DOMAINS}"
+  connect: "${EXTRA_CSP_CONNECT_DOMAINS}"
 
   # It is also possible to configure the CSP policy per context. The values are
   # cumulative with the global csp allowlist.
