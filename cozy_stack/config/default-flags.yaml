@@ -1,0 +1,28 @@
+# Default feature flags for the cozy `default` context. Spliced into
+# cozy.yaml at render time. To override for a specific deployment, copy
+# this file to `default-flags.local.yaml` (gitignored) and edit. The
+# wrapper uses the `.local.yaml` if it exists, otherwise this file.
+#
+# Format: a YAML list of single-key maps with resolved values (matches
+# cozy-stack's reference config in pkg/config/config/testdata/full_config.yaml).
+- apps.hidden:
+    - dataproxy
+    - mespapiers
+- cozy.hide-sharing-cozy-to-cozy: true
+- cozy.search.enabled: true
+- drive.default-updated-at-sort.enabled: false
+- drive.doubleclick.enabled: true
+- drive.federated-shared-folder.enabled: true
+- drive.folder-personalization.enabled: true
+- drive.highlight-new-items.enabled: true
+- drive.keyboard-shortcuts.enabled: true
+- drive.shared-drive.enabled: false
+- drive.twake-creation-from-public-sharing.disabled: true
+- drive.update-favicon.enabled: true
+- drive.virtualization.enabled: true
+- home.wallpaper-personalization.enabled: true
+- settings.partial-desktop-sync.show-synced-folders-selection: false
+- sharing.auto-open-settings.enabled: true
+- sharing.data-toggle.enabled: true
+- sharing.generate-link-button.enabled: true
+- ui.theme-twake.enabled: true

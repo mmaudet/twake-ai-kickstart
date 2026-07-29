@@ -1,13 +1,14 @@
 services:
   cozy-stack:
-    image: cozy/cozy-stack:1.6.44
+    image: cozy/cozy-stack:latest
     platform: linux/amd64
     container_name: cozyt
     restart: unless-stopped
 
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.cozy.rule=HostRegexp(`{subdomain:user3-home|user3|user3-drive|user3-linshare|user3-mail|user3-chat|user3-settings|user3-notes|user3-dataproxy|oauthcallback|user1-dataproxy|user1|user1-home|user1-chat|user1-linshare|user1-settings|user1-drive|user1-mail|user1-notes|user2|user2-home|user2-dataproxy|user2-settings|user2-chat|user2-linshare|user2-mail|user2-drive|user2-notes}.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.cozy.rule=HostRegexp(`{subdomain:[a-z0-9-]+}.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.cozy.priority=1"
       - "traefik.http.routers.cozy.entrypoints=websecure"
       - "traefik.http.routers.cozy.tls=true"
       - "traefik.http.services.cozy.loadbalancer.server.port=8080"
@@ -16,14 +17,12 @@ services:
       COUCHDB_USER: admin
       BASE_DOMAIN: ${BASE_DOMAIN}
       COUCHDB_PASSWORD: password
-      COZY_ADMIN_PASSPHRASE: admin
+      COZY_ADMIN_PASSPHRASE: ${COZY_ADMIN_PASSPHRASE:-admin}
       INBOX_SECRET: secret
       OUTBOX_SECRET: secret
+      SAFE_HTTP_TRUSTED_PRIVATE_NETWORKS: ${SAFE_HTTP_TRUSTED_PRIVATE_NETWORKS:-}
     extra_hosts:
       - "auth.${BASE_DOMAIN}:172.27.0.100"
-      - "user1.${BASE_DOMAIN}:172.27.0.100"
-      - "user2.${BASE_DOMAIN}:172.27.0.100"
-      - "user3.${BASE_DOMAIN}:172.27.0.100"
     volumes:
       - cozy-data:/var/lib/cozy/
       - ./config/docker-entrypoint.sh:/usr/local/bin/docker-entrypoint.sh
