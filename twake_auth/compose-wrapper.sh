@@ -93,8 +93,28 @@ fi
 if [ "$ACTION" = "up" ]; then
   render_lmconf
 
-  if [ "${CERT_MODE:-self-signed}" = "letsencrypt" ] || \
-     [ ! -f "traefik/ssl/twake-server.pem" ] || [ ! -f "traefik/ssl/root-ca.crt" ]; then
+  # Regenerate certs when:
+  #  - letsencrypt mode is requested
+  #  - either half of the self-signed pair is missing
+  #  - the existing self-signed cert's CN does NOT match *.$BASE_DOMAIN
+  #    (protects against a repo-tracked cert for a different domain, or
+  #    against changing BASE_DOMAIN without wiping the ssl/ dir).
+  needs_regen=false
+  if [ "${CERT_MODE:-self-signed}" = "letsencrypt" ]; then
+    needs_regen=true
+  elif [ ! -f "traefik/ssl/twake-server.pem" ] || [ ! -f "traefik/ssl/root-ca.crt" ]; then
+    needs_regen=true
+  else
+    cur_cn=$(openssl x509 -in traefik/ssl/twake-server.pem -noout -subject 2>/dev/null | sed -n 's/.*CN *= *\([^,]*\).*/\1/p' | tr -d ' ')
+    if [ "$cur_cn" != "*.${BASE_DOMAIN}" ]; then
+      echo "Existing cert CN=$cur_cn does not match *.${BASE_DOMAIN}; regenerating."
+      rm -f traefik/ssl/root-ca.crt traefik/ssl/root-ca.key traefik/ssl/root-ca.pem \
+            traefik/ssl/twake-server.csr traefik/ssl/twake-server.key \
+            traefik/ssl/twake-server.pem traefik/ssl/twake-server-fullchain.pem
+      needs_regen=true
+    fi
+  fi
+  if [ "$needs_regen" = true ]; then
     echo "Creating certs..."
     ./generate-cert.sh
     CERTS_REGENERATED=true

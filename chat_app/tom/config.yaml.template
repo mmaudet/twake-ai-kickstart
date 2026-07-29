@@ -1,0 +1,25 @@
+# tom-server v2026-04-30 requires a config file at boot; env vars alone no longer suffice.
+# The @twake/config-parser hard-errors before it merges env vars if no file is found,
+# and rejects an empty file because `server` and `database` blocks are required.
+# We fill only those two blocks; every other setting still comes from the env vars
+# in docker-compose.yaml (SERVER_NAME, BASE_URL, OIDC_ISSUER, LDAP_URI, MATRIX_*,
+# RABBITMQ_*, etc.) which the parser merges on top.
+#
+# NOTE — legacy routers still skip at boot with:
+#   "skipping ToM legacy router: matrix_database_engine and matrix_database_host not set"
+# because the new config-parser does not yet map MATRIX_DATABASE_* env vars into the
+# legacy config keys. The tom HTTP server comes up and serves /metrics + landing, but
+# federation-adjacent legacy routes are inactive until upstream restores env→config
+# mapping or the fields are moved into this yaml.
+#
+# Rendered from this template by chat_app/compose-wrapper.sh with envsubst on $BASE_DOMAIN.
+
+server:
+  name: ${BASE_DOMAIN}
+  base_url: https://tom.${BASE_DOMAIN}
+
+database:
+  host: postgres
+  name: tom
+  user: twake
+  password: twake!1

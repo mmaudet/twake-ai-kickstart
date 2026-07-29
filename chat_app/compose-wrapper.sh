@@ -18,6 +18,8 @@ envsubst '$BASE_DOMAIN $LDAP_BASE_DN' < ./synapse/homeserver-postgres.yaml.templ
 envsubst '$BASE_DOMAIN' < ./synapse/wellknownclient.conf.template > ./synapse/wellknownclient.conf
 envsubst '$BASE_DOMAIN' < ./synapse/wellknownserver.conf.template > ./synapse/wellknownserver.conf
 envsubst '$BASE_DOMAIN' < ./chat/config.json.template > ./chat/config.json
+# tom-server v2026-04-30 requires a config file at boot (see tom/config.yaml.template).
+envsubst '$BASE_DOMAIN' < ./tom/config.yaml.template > ./tom/config.yaml
 
 # Check if file was created
 if [ ! -f "./synapse/homeserver-postgres.yaml" ]; then
@@ -33,6 +35,10 @@ if [ ! -f "./synapse/wellknownserver.conf" ]; then
     exit 1
 fi
 if [ ! -f "./chat/config.json" ]; then
+    echo "Failed to create configuration file"
+    exit 1
+fi
+if [ ! -f "./tom/config.yaml" ]; then
     echo "Failed to create configuration file"
     exit 1
 fi

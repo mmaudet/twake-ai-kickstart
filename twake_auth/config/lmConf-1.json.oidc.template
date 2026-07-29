@@ -395,7 +395,7 @@
          "oidcOPMetaDataOptionsStoreIDToken" : 0,
          "oidcOPMetaDataOptionsTokenEndpointAuthMethod" : "client_secret_post",
          "oidcOPMetaDataOptionsUseNonce" : 1,
-         "oidcOPMetaDataOptionsUserAttribute" : "",
+         "oidcOPMetaDataOptionsUserAttribute" : "preferred_username",
          "oidcOPMetaDataOptionsUserinfoSource" : "userinfo"
       }
    },

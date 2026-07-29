@@ -117,8 +117,12 @@ services:
 
       - LOG_LEVEL=silly
       - LOG_TRANSPORTS=Console
+    # tom-server v2026-04-30 hard-errors at boot without a config file
+    # (env-only startup was regressed). See tom/config.yaml.template.
+    volumes:
+      - ./tom/config.yaml:/etc/twake/chat/tom/config.yaml:ro
     extra_hosts:
-      - "matrix.${BASE_DOMAIN}:172.27.0.100"  
+      - "matrix.${BASE_DOMAIN}:172.27.0.100"
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.tom.rule=Host(`tom.${BASE_DOMAIN}`)"
@@ -126,11 +130,14 @@ services:
       - "traefik.http.services.tom.loadbalancer.server.port=3000"
       - "traefik.http.routers.tomfromchat.rule=Host(`chat.${BASE_DOMAIN}`) && PathPrefix(`/_twake`)"
       - "traefik.http.routers.tomfromchat.entrypoints=websecure"
-      - "traefik.http.routers.tomfromchat.priority=100" 
+      - "traefik.http.routers.tomfromchat.priority=100"
 
   fed:
     image: linagora/tom-federated-identity-service:v2026-04-15
     restart: unless-stopped
+    # Same config-file requirement as tom (shared @twake/config-parser).
+    volumes:
+      - ./tom/config.yaml:/etc/twake/chat/fed/config.yaml:ro
     depends_on:
       tom:
         condition: service_started
