@@ -18,10 +18,20 @@ rtc:
   # advertise the container IP (only useful to other containers).
   use_external_ip: ${LIVEKIT_USE_EXTERNAL_IP}
   node_ip: ${LIVEKIT_NODE_IP}
+  # External TURN relay for peers whose network blocks the direct RTC path
+  # (strict NAT, corporate firewalls, mobile carriers). LIVEKIT_TURN_HOST is
+  # empty by default; when unset, ./compose-wrapper.sh strips the turn_servers
+  # block before rendering so LiveKit does not try to register a bogus relay.
+  turn_servers:
+    - host: ${LIVEKIT_TURN_HOST}
+      port: 5349
+      protocol: tls
+      username: ${LIVEKIT_TURN_USER}
+      credential: ${LIVEKIT_TURN_CREDENTIAL}
 turn:
   # Embedded TURN listens on udp_port (443 by default) which typically
   # collides with a reverse-proxy on the same host. Disabled by default;
-  # deploy an external TURN (coturn) if you need relay through a strict NAT.
+  # point rtc.turn_servers above at an external coturn if you need relay.
   enabled: false
 
 keys:
