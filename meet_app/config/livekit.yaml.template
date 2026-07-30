@@ -5,12 +5,24 @@ rtc:
   # is intentionally unset, LiveKit ignores it whenever udp_port is set.
   udp_port: 7881
   tcp_port: 7881
-  # false (local) advertises the container IP; true lets LiveKit auto-detect
-  # the host's public IP via STUN so remote browsers get a routable candidate.
+  # Remote-peer reachability options:
+  #   - use_external_ip=true: LiveKit auto-detects its public IP via STUN and
+  #     advertises it in ICE candidates. Works when the container's host is
+  #     the public gateway.
+  #   - node_ip=<explicit>: overrides the ICE candidate IP. Use this when the
+  #     container runs behind a separate public gateway (e.g. a reverse-proxy
+  #     VPS that DNATs the RTC ports back to the container's host) — STUN
+  #     would otherwise return the container's egress IP, not the gateway
+  #     one, and remote browsers would fail to connect.
+  # Leave both empty for a local single-machine dev setup and LiveKit will
+  # advertise the container IP (only useful to other containers).
   use_external_ip: ${LIVEKIT_USE_EXTERNAL_IP}
+  node_ip: ${LIVEKIT_NODE_IP}
 turn:
-  enabled: true
-  udp_port: 443
+  # Embedded TURN listens on udp_port (443 by default) which typically
+  # collides with a reverse-proxy on the same host. Disabled by default;
+  # deploy an external TURN (coturn) if you need relay through a strict NAT.
+  enabled: false
 
 keys:
 #  <LIVEKIT_API_KEY>: <LIVEKIT_API_SECRET>
