@@ -1,0 +1,5 @@
+# per-app secrets (regenerated from LLNG template + docker inspect on deploy)
+.env
+
+# pre-migration snapshots (used to reconstruct the docker-run configs)
+*.inspect.pre-llng.json

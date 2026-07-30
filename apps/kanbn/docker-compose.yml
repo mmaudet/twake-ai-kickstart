@@ -1,0 +1,14 @@
+services:
+  kanbn:
+    image: ghcr.io/kanbn/kan:latest
+    container_name: kan-web
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "6090:3000"
+    networks:
+      - kanbn-backend_kan-network
+networks:
+  kanbn-backend_kan-network:
+    external: true

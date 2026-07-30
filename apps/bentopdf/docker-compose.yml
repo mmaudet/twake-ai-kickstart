@@ -1,0 +1,26 @@
+services:
+  bentopdf:
+    image: ghcr.io/alam00000/bentopdf-simple:latest
+    container_name: bentopdf
+    restart: unless-stopped
+    volumes:
+      - /home/mmaudet/.bentopdf/config.json:/usr/share/nginx/html/config.json:ro
+    networks:
+      - default
+
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: oauth2-proxy-bentopdf
+    restart: unless-stopped
+    depends_on:
+      - bentopdf
+    ports:
+      - "6130:4180"
+    env_file:
+      - .env
+    networks:
+      - default
+
+networks:
+  default:
+    name: bentopdf-net

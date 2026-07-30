@@ -1,0 +1,20 @@
+services:
+  openproject:
+    image: openproject-patched:13
+    container_name: openproject
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "6080:80"
+    volumes:
+      - openproject_data:/var/openproject/assets
+      - openproject_pgdata:/var/openproject/pgdata
+      - openproject_logs:/var/log/supervisor
+volumes:
+  openproject_data:
+    external: true
+  openproject_pgdata:
+    external: true
+  openproject_logs:
+    external: true
