@@ -88,6 +88,11 @@ fi
 # Pass all arguments to docker compose. When a dev app is requested, merge the
 # dev-app overlay (bind mount + serve --dev). Unset => base stack, unchanged.
 COMPOSE_FILES="-f docker-compose.yml"
+# Explicit -f disables `docker compose`'s auto-discovery of docker-compose.override.yml.
+# Re-include it if present so operator overrides (extra bind mounts, port remaps,
+# etc.) take effect on `wrapper.sh up`. The other subrepo wrappers do not pass
+# -f explicitly and get override loading for free; this one needs the opt-in.
+[ -f docker-compose.override.yml ] && COMPOSE_FILES="$COMPOSE_FILES -f docker-compose.override.yml"
 if [ -n "${COZY_DEV_APP_SLUG:-}" ]; then
   if [ -z "${COZY_DEV_APP_BUILD:-}" ]; then
     echo "❌ COZY_DEV_APP_SLUG is set but COZY_DEV_APP_BUILD (abs path to app build/) is empty" >&2
