@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="{{.Locale}}">
+<head>
+  <meta charset="utf-8">
+  <title>{{.AppName}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" type="image/svg+xml" href="icon.svg">
+  <link rel="stylesheet" type="text/css" href="//{{.Domain}}/assets/fonts/fonts.css">
+  {{.CozyFonts}}
+  {{.ThemeCSS}}
+  <link rel="stylesheet" href="bar.css">
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; background: #faf9f5; }
+    body.has-banner { display: flex; flex-direction: column; }
+    [role=application] {
+      flex: 1 1 auto;
+      min-height: 0;
+      width: 100%;
+    }
+    [role=application] > iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div role="application"
+       data-cozy="{{.CozyData}}"
+       data-cozy-domain="{{.Domain}}"
+       data-cozy-token="{{.Token}}"
+       data-cozy-locale="{{.Locale}}"
+       data-cozy-app-slug="{{.AppSlug}}"
+       data-cozy-app-name="Calendar"
+       data-cozy-app-name-prefix="Twake"
+       data-cozy-app-editor="{{.AppEditor}}"
+       data-cozy-icon-path="icon.svg">
+    <iframe src="https://calendar-ng.twake-dev.maudet.cloud/" title="Twake Calendar"></iframe>
+  </div>
+  <script src="bar.js" defer></script>
+</body>
+</html>

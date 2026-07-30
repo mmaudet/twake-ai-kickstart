@@ -1,0 +1,64 @@
+{
+  "name": "Calendar",
+  "name_prefix": "Twake",
+  "slug": "calendar",
+  "icon": "icon.svg",
+  "categories": ["productivity"],
+  "version": "1.0.0",
+  "license": "AGPL-3.0",
+  "editor": "Linagora",
+  "type": "webapp",
+  "source": "file:///home/mmaudet/work/dev.twake.ai/calendar-app",
+  "developer": {
+    "name": "Linagora",
+    "url": "https://twake.ai/"
+  },
+  "locales": {
+    "fr": {
+      "name": "Calendar",
+      "short_description": "Agenda Twake Calendar embarqué",
+      "long_description": "Wrapper Cozy autour de l'instance Twake Calendar hébergée à calendar-ng.twake-dev.maudet.cloud."
+    },
+    "en": {
+      "name": "Calendar",
+      "short_description": "Embedded Twake Calendar"
+    }
+  },
+  "default_locale": "fr",
+  "screenshots": [],
+  "permissions": {
+    "apps": {
+      "description": "Required by the cozy-bar to display the icons of the apps",
+      "type": "io.cozy.apps",
+      "verbs": ["GET"]
+    },
+    "settings": {
+      "description": "Required by cozy-bar for settings menu",
+      "type": "io.cozy.settings",
+      "verbs": ["GET"]
+    },
+    "sharings": {
+      "description": "Required to have access to the sharings in realtime",
+      "type": "io.cozy.sharings",
+      "verbs": ["GET"]
+    },
+    "contacts": {
+      "description": "Required by cozy-bar to show the user (myself) menu",
+      "type": "io.cozy.contacts",
+      "verbs": ["GET"]
+    },
+    "files": {
+      "description": "Required by cozy-bar (recent files / search)",
+      "type": "io.cozy.files",
+      "verbs": ["GET", "POST"]
+    }
+  },
+  "routes": {
+    "/": {
+      "folder": "/",
+      "index": "index.html",
+      "public": false
+    }
+  },
+  "intents": []
+}
