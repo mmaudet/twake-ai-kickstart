@@ -25,21 +25,20 @@ services:
       retries: 5
 
   backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Image is produced by ./build-meet.sh from the DINUM upstream tag pinned
+    # in ${MEET_VERSION} (.env). Local overlay (if any) lives in patches/*.patch.
+    image: twake-meet-backend:${MEET_VERSION}
     container_name: visio-backend
     platform: linux/amd64
     entrypoint: |
       /bin/sh -c "
        apk add --no-cache curl && \
        python manage.py migrate --no-input && \
-       gunicorn -c /usr/local/etc/gunicorn/meet.py --forwarded-allow-ips="*" meet.wsgi:application --reload"
+       gunicorn -c /usr/local/etc/gunicorn/meet.py --forwarded-allow-ips='*' meet.wsgi:application"
     user: root
     environment:
-      DJANGO_CONFIGURATION: Development
+      DJANGO_CONFIGURATION: Demo
       DJANGO_SETTINGS_MODULE: meet.settings
-      DISABLE_DJANGO_EXTENSIONS: "true"
       DJANGO_ALLOWED_HOSTS: "*"
       DJANGO_SILENCED_SYSTEM_CHECKS: security.W004, security.W008
       DJANGO_EMAIL_HOST: "mailcatcher"
@@ -106,7 +105,7 @@ services:
       retries: 3
 
   frontend:
-    image: ghcr.io/cozy/meet-frontend:0.0.1
+    image: twake-meet-frontend:${MEET_VERSION}
     container_name: visio-frontend
     platform: linux/amd64
     depends_on:
