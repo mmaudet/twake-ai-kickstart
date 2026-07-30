@@ -1,3 +1,11 @@
+# NOTE: this compose expands ${BASE_DOMAIN} in several places (hostname:,
+# traefik router rules, ESN_HOST, OPENPAAS_URL). To be usable from this
+# directory (docker compose up sabre_dav, etc.) without --env-file, a
+# .env symlink points at ../.env at the deploy root. If BASE_DOMAIN
+# resolves empty, sabre_dav's ESN_HOST becomes "tcalendar-side-service."
+# and DAV calendar-home auto-provisioning silently fails (side-service
+# creates the user record but sabre can never call back).
+
 services:
   tcalendar-frontend:
     image: linagora/twake-calendar-web:branch-master
