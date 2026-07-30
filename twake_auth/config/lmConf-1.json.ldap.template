@@ -129,7 +129,7 @@
    "cfgAuthorIP": "172.27.0.100 (maybe 172.27.0.1)",
    "cfgDate": 1769696804,
    "cfgLog": "",
-   "cfgNum": 100,
+   "cfgNum": 101,
    "cfgVersion": "2.21.2",
    "checkDevOpsCheckSessionAttributes": 1,
    "checkDevOpsDisplayNormalizedHeaders": 1,
@@ -443,6 +443,12 @@
          "name": "cn",
          "preferred_username": "uid",
          "user_name": "uid"
+      },
+      "visio-widget": {
+         "email": "mail",
+         "name": "cn",
+         "preferred_username": "uid",
+         "user_name": "uid"
       }
    },
    "oidcRPMetaDataMacros": {
@@ -456,7 +462,8 @@
       "linshare": {},
       "meet": {},
       "n8n": {},
-      "openproject": {}
+      "openproject": {},
+      "visio-widget": {}
    },
    "oidcRPMetaDataOptions": {
       "bentopdf": {
@@ -799,6 +806,32 @@
          "oidcRPMetaDataOptionsRefreshTokenRotation": 0,
          "oidcRPMetaDataOptionsRequirePKCE": 0,
          "oidcRPMetaDataOptionsUserinfoRequireHeaderToken": 0
+      },
+      "visio-widget": {
+         "oidcRPMetaDataOptionsAccessTokenClaims": 1,
+         "oidcRPMetaDataOptionsAccessTokenJWT": 1,
+         "oidcRPMetaDataOptionsAccessTokenSignAlg": "RS256",
+         "oidcRPMetaDataOptionsAllowClientCredentialsGrant": 0,
+         "oidcRPMetaDataOptionsAllowOffline": 1,
+         "oidcRPMetaDataOptionsAllowPasswordGrant": 0,
+         "oidcRPMetaDataOptionsAuthRequiredForAuthorize": 0,
+         "oidcRPMetaDataOptionsAuthnRequireNonce": 1,
+         "oidcRPMetaDataOptionsAuthnRequireState": 1,
+         "oidcRPMetaDataOptionsBypassConsent": 1,
+         "oidcRPMetaDataOptionsClientID": "visio-widget",
+         "oidcRPMetaDataOptionsClientSecret": "",
+         "oidcRPMetaDataOptionsIDTokenForceClaims": 1,
+         "oidcRPMetaDataOptionsIDTokenSignAlg": "RS256",
+         "oidcRPMetaDataOptionsLogoutBypassConfirm": 1,
+         "oidcRPMetaDataOptionsLogoutSessionRequired": 1,
+         "oidcRPMetaDataOptionsLogoutType": "front",
+         "oidcRPMetaDataOptionsPostLogoutRedirectUris": "https://mmaudet-visio.twake-dev.maudet.cloud/ https://bandre-visio.twake-dev.maudet.cloud/ https://qvalmori-visio.twake-dev.maudet.cloud/ https://dpotokina-visio.twake-dev.maudet.cloud/ https://ptranvan-visio.twake-dev.maudet.cloud/ https://xguimard-visio.twake-dev.maudet.cloud/ https://alebaud-visio.twake-dev.maudet.cloud/ https://user1-visio.twake-dev.maudet.cloud/ https://user2-visio.twake-dev.maudet.cloud/ https://user3-visio.twake-dev.maudet.cloud/",
+         "oidcRPMetaDataOptionsPublic": 1,
+         "oidcRPMetaDataOptionsRedirectUris": "https://mmaudet-visio.twake-dev.maudet.cloud/oauth-silent-callback https://bandre-visio.twake-dev.maudet.cloud/oauth-silent-callback https://qvalmori-visio.twake-dev.maudet.cloud/oauth-silent-callback https://dpotokina-visio.twake-dev.maudet.cloud/oauth-silent-callback https://ptranvan-visio.twake-dev.maudet.cloud/oauth-silent-callback https://xguimard-visio.twake-dev.maudet.cloud/oauth-silent-callback https://alebaud-visio.twake-dev.maudet.cloud/oauth-silent-callback https://user1-visio.twake-dev.maudet.cloud/oauth-silent-callback https://user2-visio.twake-dev.maudet.cloud/oauth-silent-callback https://user3-visio.twake-dev.maudet.cloud/oauth-silent-callback",
+         "oidcRPMetaDataOptionsRefreshToken": 1,
+         "oidcRPMetaDataOptionsRefreshTokenRotation": 1,
+         "oidcRPMetaDataOptionsRequirePKCE": 1,
+         "oidcRPMetaDataOptionsUserinfoRequireHeaderToken": 0
       }
    },
    "oidcRPMetaDataOptionsExtraClaims": {
@@ -812,7 +845,8 @@
       "linshare": {},
       "meet": {},
       "n8n": {},
-      "openproject": {}
+      "openproject": {},
+      "visio-widget": {}
    },
    "oidcRPMetaDataScopeRules": {
       "bentopdf": {},
@@ -825,7 +859,8 @@
       "linshare": {},
       "meet": {},
       "n8n": {},
-      "openproject": {}
+      "openproject": {},
+      "visio-widget": {}
    },
    "oidcRPStateTimeout": 600,
    "oidcServiceAccessTokenExpiration": 3600,

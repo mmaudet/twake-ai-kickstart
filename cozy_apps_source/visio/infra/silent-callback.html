@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Twake Visio widget — silent OIDC callback</title>
+</head>
+<body>
+<script>
+/*
+ * silent-callback.html
+ * --------------------
+ * Loaded inside a hidden iframe by widget.js to complete the OIDC
+ * `prompt=none` authorization_code flow. LLNG redirects here with
+ * ?code=... (success) or ?error=... (silent failure — usually
+ * login_required, meaning the LLNG session cookie is missing).
+ *
+ * Forwards the query string back to the parent widget via
+ * postMessage so it can either exchange the code for tokens or
+ * degrade to the "link to calendar" fallback on error.
+ *
+ * Uses window.location.origin as the target so the parent widget
+ * only accepts messages from the same-origin iframe (same
+ * <user>-visio.<BASE> host). If the parent lives in a different
+ * origin — LLNG never redirects there — no message is delivered.
+ */
+(function () {
+  try {
+    var q = window.location.search || '';
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        { source: 'visio-widget-oidc-callback', query: q },
+        window.location.origin
+      );
+    }
+  } catch (_e) { /* silent — widget will time out and fall back */ }
+})();
+</script>
+</body>
+</html>

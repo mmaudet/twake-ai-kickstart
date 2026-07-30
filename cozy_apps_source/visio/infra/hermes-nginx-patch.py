@@ -9,19 +9,27 @@ via nginx `sub_filter` when the requested host matches
 `*-visio.<BASE>`. Other subdomains are untouched (the map is empty
 for them, sub_filter no-ops).
 
+Also serves the silent-OIDC callback (`/oauth-silent-callback`) that
+the widget's hidden iframe redirects to after LLNG's `prompt=none`
+authorization_code flow. Same origin as the widget, static HTML,
+posts the query string back to the parent via postMessage.
+
 Attempted first: a dedicated vhost with a regex server_name. That
 approach doesn't work because nginx picks wildcard server_names over
 regex ones for the same host — the shared `*.twake-dev.maudet.cloud`
 wildcard already claims `<user>-visio.twake-dev.maudet.cloud`.
 
 Files touched on hermes (all root-owned):
-  /etc/nginx/sites-enabled/twake-dev             (patched in place — see markers below)
-  /etc/nginx/conf.d/visio-inject.conf            (new: the `map` block, http-level)
-  /var/www/visio-patches/widget.js               (copy of the local widget.js)
+  /etc/nginx/sites-enabled/twake-dev              (patched in place — see markers below)
+  /etc/nginx/conf.d/visio-inject.conf             (new: the `map` block, http-level)
+  /var/www/visio-patches/widget.js                (copy of the local widget.js)
+  /var/www/visio-patches/silent-callback.html     (copy of the local silent-callback.html)
 
 Usage:
-  scp cozy_apps_source/visio/infra/{hermes-nginx-patch.py,widget.js} hermes:/tmp/
-  ssh hermes 'sudo python3 /tmp/hermes-nginx-patch.py --widget /tmp/widget.js && \
+  scp cozy_apps_source/visio/infra/{hermes-nginx-patch.py,widget.js,silent-callback.html} hermes:/tmp/
+  ssh hermes 'sudo python3 /tmp/hermes-nginx-patch.py \
+                --widget /tmp/widget.js \
+                --silent-callback /tmp/silent-callback.html && \
               sudo nginx -t && sudo nginx -s reload'
 """
 from __future__ import annotations
@@ -54,15 +62,26 @@ map $host $visio_inject {{
 # Adds:
 #   - a `location /visio-patches/` that serves widget.js from disk
 #     (short-circuits the proxy_pass, must come before location /)
+#   - a `location = /oauth-silent-callback` that serves the callback
+#     HTML from disk (short-circuits proxy_pass, must come before
+#     location /). Non-visio hosts do not use this path so serving
+#     the callback to any subdomain is harmless — the HTML only
+#     works when loaded inside our own iframe.
 #   - inside `location /`, the sub_filter that appends $visio_inject
 #     before </body>. When $visio_inject is empty (any non-visio host)
 #     nginx still runs the substitution but the output is unchanged.
 LOCATION_SNIPPET = f"""    {BEGIN}
-    # Serve the injected widget locally so cozy-stack never sees this URL.
+    # Serve the injected widget + silent-OIDC callback locally so
+    # cozy-stack never sees these URLs.
     location /visio-patches/ {{
         alias {WIDGET_DEPLOY_DIR}/;
         add_header Cache-Control "no-cache";
         default_type application/javascript;
+    }}
+    location = /oauth-silent-callback {{
+        alias {WIDGET_DEPLOY_DIR}/silent-callback.html;
+        add_header Cache-Control "no-cache";
+        default_type text/html;
     }}
     {END}
 """
@@ -78,15 +97,15 @@ SUBFILTER_SNIPPET = f"""        {BEGIN}
 """
 
 
-def install_widget(source_widget: pathlib.Path) -> None:
+def install_static(source: pathlib.Path, name: str) -> None:
     WIDGET_DEPLOY_DIR.mkdir(parents=True, exist_ok=True)
-    target = WIDGET_DEPLOY_DIR / "widget.js"
-    if target.exists() and target.read_bytes() == source_widget.read_bytes():
-        print(f"[widget] {target} already up to date")
+    target = WIDGET_DEPLOY_DIR / name
+    if target.exists() and target.read_bytes() == source.read_bytes():
+        print(f"[{name}] {target} already up to date")
         return
-    shutil.copy2(source_widget, target)
+    shutil.copy2(source, target)
     os.chmod(target, 0o644)
-    print(f"[widget] copied {source_widget} -> {target}")
+    print(f"[{name}] copied {source} -> {target}")
 
 
 def install_map_conf() -> None:
@@ -138,19 +157,27 @@ def main() -> int:
         default=pathlib.Path(__file__).parent / "widget.js",
         help="Path to widget.js to install (defaults to sibling widget.js).",
     )
+    parser.add_argument(
+        "--silent-callback",
+        type=pathlib.Path,
+        default=pathlib.Path(__file__).parent / "silent-callback.html",
+        help="Path to silent-callback.html to install (defaults to sibling silent-callback.html).",
+    )
     args = parser.parse_args()
 
     if os.geteuid() != 0:
         print("error: run as root (writes /etc/nginx and /var/www)", file=sys.stderr)
         return 2
-    if not args.widget.exists():
-        print(f"error: widget file not found: {args.widget}", file=sys.stderr)
-        return 2
+    for req in (args.widget, args.silent_callback):
+        if not req.exists():
+            print(f"error: file not found: {req}", file=sys.stderr)
+            return 2
     if not VHOST_PATH.exists():
         print(f"error: expected wildcard vhost not found: {VHOST_PATH}", file=sys.stderr)
         return 2
 
-    install_widget(args.widget)
+    install_static(args.widget, "widget.js")
+    install_static(args.silent_callback, "silent-callback.html")
     install_map_conf()
     patch_vhost()
 
