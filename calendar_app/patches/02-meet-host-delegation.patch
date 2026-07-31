@@ -1,0 +1,1236 @@
+diff --git a/app/src/main/java/com/linagora/calendar/app/TwakeCalendarMain.java b/app/src/main/java/com/linagora/calendar/app/TwakeCalendarMain.java
+index 073aae19..6761bad7 100644
+--- a/app/src/main/java/com/linagora/calendar/app/TwakeCalendarMain.java
++++ b/app/src/main/java/com/linagora/calendar/app/TwakeCalendarMain.java
+@@ -63,6 +63,7 @@ import com.google.inject.multibindings.Multibinder;
+ import com.google.inject.name.Names;
+ import com.google.inject.util.Modules;
+ import com.linagora.calendar.amqp.CalendarAmqpModule;
++import com.linagora.calendar.amqp.meet.MeetIntegrationModule;
+ import com.linagora.calendar.app.modules.AlarmEventModule;
+ import com.linagora.calendar.app.modules.DeleteUserDataRoutesModule;
+ import com.linagora.calendar.app.modules.MemoryAutoCompleteModule;
+@@ -149,6 +150,7 @@ public class TwakeCalendarMain {
+                 new TaskManagerModule(),
+                 new DavModule(),
+                 new CalendarAmqpModule(),
++                new MeetIntegrationModule(),
+                 new TwakeCalendarRabbitMQModule(),
+                 new TechnicalUserTokenModule(),
+                 new AlarmEventModule(),
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/CalendarEventMessage.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/CalendarEventMessage.java
+index ebc34536..ab9f38cf 100644
+--- a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/CalendarEventMessage.java
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/CalendarEventMessage.java
+@@ -52,6 +52,10 @@ public abstract class CalendarEventMessage {
+         this.isImport = isImport;
+     }
+ 
++    public JsonNode calendarEvent() {
++        return calendarEvent;
++    }
++
+     public CalendarURL extractCalendarURL() {
+         return EventFieldConverter.extractCalendarURL(eventPath);
+     }
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/EventProperty.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/EventProperty.java
+index 36ddb0a0..3ca1eb88 100644
+--- a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/EventProperty.java
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/EventProperty.java
+@@ -68,6 +68,7 @@ public class EventProperty {
+     public static final String DURATION_PROPERTY = "duration";
+     public static final String VIDEOCONFERENCE = "x-openpaas-videoconference";
+     public static final String BOOKING_LINK = "x-openpaas-booking-link";
++    public static final String DELEGATE_HOSTS = "x-twake-delegate-hosts";
+ 
+     protected final String name;
+     protected final JsonNode attributes;
+@@ -81,6 +82,14 @@ public class EventProperty {
+         this.value = value;
+     }
+ 
++    public String name() {
++        return name;
++    }
++
++    public String value() {
++        return value;
++    }
++
+     public static class AttendeeProperty extends EventProperty {
+         private final String cn;
+         private final MailAddress mailAddress;
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetApplicationClient.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetApplicationClient.java
+new file mode 100644
+index 00000000..9aa7f85e
+--- /dev/null
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetApplicationClient.java
+@@ -0,0 +1,214 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import java.util.Optional;
++
++import javax.net.ssl.SSLException;
++
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++import com.fasterxml.jackson.databind.JsonNode;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.fasterxml.jackson.databind.node.ObjectNode;
++
++import io.netty.buffer.Unpooled;
++import io.netty.handler.codec.http.HttpHeaderNames;
++import io.netty.handler.codec.http.HttpHeaderValues;
++import io.netty.handler.codec.http.HttpResponseStatus;
++import io.netty.handler.ssl.SslContext;
++import io.netty.handler.ssl.SslContextBuilder;
++import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
++import reactor.core.publisher.Mono;
++import reactor.netty.http.client.HttpClient;
++
++/**
++ * Thin Reactor-Netty client for LaSuite Meet's application-scoped
++ * external API. See {@code MeetHostDelegationService} for the intended
++ * calling pattern.
++ */
++public class MeetApplicationClient {
++    private static final Logger LOGGER = LoggerFactory.getLogger(MeetApplicationClient.class);
++    private static final ObjectMapper MAPPER = new ObjectMapper();
++
++    private static final String TOKEN_PATH = "/external-api/v1.0/application/token/";
++    private static final String ROOMS_PATH = "/external-api/v1.0/rooms/";
++    private static final String GRANT_ACCESS_URL_TEMPLATE = "/external-api/v1.0/rooms/%s/grant-access/";
++
++    private final HttpClient client;
++    private final MeetConfiguration config;
++
++    public MeetApplicationClient(MeetConfiguration config) throws SSLException {
++        this.config = config;
++        this.client = config.enabled() ? createHttpClient(config) : null;
++    }
++
++    private static HttpClient createHttpClient(MeetConfiguration config) throws SSLException {
++        HttpClient httpClient = HttpClient.create()
++            .baseUrl(config.externalApiBaseUrl().toString())
++            .responseTimeout(config.responseTimeout())
++            // Django (Meet backend) enforces SECURE_SSL_REDIRECT and would issue a
++            // 301 back to https://… when reached directly on port 8000 inside the
++            // docker network. Announce https via the forwarded header — matches
++            // what the nginx frontend does when routing external traffic.
++            .headers(h -> h.set("X-Forwarded-Proto", "https"));
++        if (config.trustAllSslCerts()) {
++            SslContext sslContext = SslContextBuilder.forClient()
++                .trustManager(InsecureTrustManagerFactory.INSTANCE)
++                .build();
++            return httpClient.secure(spec -> spec.sslContext(sslContext));
++        }
++        return httpClient;
++    }
++
++    /**
++     * Exchange client credentials for a JWT scoped to {@code organizerEmail}.
++     * Fails with {@link MeetApiException} on any non-2xx or transport error.
++     */
++    public Mono<String> fetchApplicationToken(String organizerEmail) {
++        ObjectNode body = MAPPER.createObjectNode();
++        body.put("client_id", config.clientId());
++        body.put("client_secret", config.clientSecret());
++        body.put("grant_type", "client_credentials");
++        body.put("scope", organizerEmail);
++
++        byte[] payload = serialize(body);
++
++        return client.headers(h -> h.set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON))
++            .post()
++            .uri(TOKEN_PATH)
++            .send(Mono.just(Unpooled.wrappedBuffer(payload)))
++            .responseSingle((response, bodyMono) -> {
++                HttpResponseStatus status = response.status();
++                return bodyMono.asString().defaultIfEmpty("").flatMap(bodyString -> {
++                    if (status.code() >= 200 && status.code() < 300) {
++                        return extractAccessToken(bodyString);
++                    }
++                    return Mono.error(new MeetApiException(
++                        "Failed to obtain application token: HTTP " + status.code() + " — " + bodyString));
++                });
++            });
++    }
++
++    /**
++     * Find a room by its Meet URL slug (the last non-empty path segment
++     * of {@code X-OPENPAAS-VIDEOCONFERENCE}). Only rooms accessible to
++     * the JWT's scoped user are considered.
++     */
++    public Mono<Optional<String>> findRoomIdBySlug(String bearerToken, String slug) {
++        return client.headers(h -> h.set(HttpHeaderNames.AUTHORIZATION, "Bearer " + bearerToken))
++            .get()
++            .uri(ROOMS_PATH)
++            .responseSingle((response, bodyMono) -> {
++                HttpResponseStatus status = response.status();
++                return bodyMono.asString().defaultIfEmpty("").flatMap(bodyString -> {
++                    if (status.code() >= 200 && status.code() < 300) {
++                        return matchRoomBySlug(bodyString, slug);
++                    }
++                    return Mono.error(new MeetApiException(
++                        "Failed to list rooms: HTTP " + status.code() + " — " + bodyString));
++                });
++            });
++    }
++
++    /**
++     * Grant admin (or member) access on {@code roomId} to {@code delegateEmail}.
++     * Idempotent by design of the server (see Meet Patch A).
++     */
++    public Mono<Void> grantAccess(String bearerToken, String roomId, String delegateEmail) {
++        ObjectNode body = MAPPER.createObjectNode();
++        body.put("email", delegateEmail);
++        body.put("role", "administrator");
++        byte[] payload = serialize(body);
++
++        String path = String.format(GRANT_ACCESS_URL_TEMPLATE, roomId);
++
++        return client.headers(h -> {
++                h.set(HttpHeaderNames.AUTHORIZATION, "Bearer " + bearerToken);
++                h.set(HttpHeaderNames.CONTENT_TYPE, HttpHeaderValues.APPLICATION_JSON);
++            })
++            .post()
++            .uri(path)
++            .send(Mono.just(Unpooled.wrappedBuffer(payload)))
++            .responseSingle((response, bodyMono) -> {
++                HttpResponseStatus status = response.status();
++                return bodyMono.asString().defaultIfEmpty("").flatMap(bodyString -> {
++                    if (status.code() >= 200 && status.code() < 300) {
++                        LOGGER.info("Granted admin on Meet room {} to {} (HTTP {})", roomId, delegateEmail, status.code());
++                        return Mono.<Void>empty();
++                    }
++                    return Mono.error(new MeetApiException(
++                        "Failed to grant access on room " + roomId + " to " + delegateEmail
++                            + ": HTTP " + status.code() + " — " + bodyString));
++                });
++            });
++    }
++
++    private Mono<String> extractAccessToken(String bodyString) {
++        try {
++            JsonNode node = MAPPER.readTree(bodyString);
++            JsonNode tokenNode = node.get("access_token");
++            if (tokenNode == null || !tokenNode.isTextual()) {
++                return Mono.error(new MeetApiException("Meet token response missing access_token: " + bodyString));
++            }
++            return Mono.just(tokenNode.asText());
++        } catch (Exception e) {
++            return Mono.error(new MeetApiException("Failed to parse Meet token response: " + bodyString, e));
++        }
++    }
++
++    private Mono<Optional<String>> matchRoomBySlug(String bodyString, String slug) {
++        try {
++            JsonNode root = MAPPER.readTree(bodyString);
++            JsonNode rooms = root.isArray() ? root : root.get("results");
++            if (rooms == null || !rooms.isArray()) {
++                return Mono.just(Optional.empty());
++            }
++            for (JsonNode room : rooms) {
++                JsonNode slugNode = room.get("slug");
++                JsonNode idNode = room.get("id");
++                if (slugNode != null && slug.equalsIgnoreCase(slugNode.asText()) && idNode != null) {
++                    return Mono.just(Optional.of(idNode.asText()));
++                }
++            }
++            return Mono.just(Optional.empty());
++        } catch (Exception e) {
++            return Mono.error(new MeetApiException("Failed to parse Meet /rooms/ response", e));
++        }
++    }
++
++    private static byte[] serialize(ObjectNode body) {
++        try {
++            return MAPPER.writeValueAsBytes(body);
++        } catch (Exception e) {
++            throw new IllegalStateException("Unable to serialise Meet request body", e);
++        }
++    }
++
++    public static class MeetApiException extends RuntimeException {
++        public MeetApiException(String message) {
++            super(message);
++        }
++
++        public MeetApiException(String message, Throwable cause) {
++            super(message, cause);
++        }
++    }
++}
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetConfiguration.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetConfiguration.java
+new file mode 100644
+index 00000000..59a8845f
+--- /dev/null
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetConfiguration.java
+@@ -0,0 +1,102 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import java.net.URI;
++import java.time.Duration;
++import java.time.temporal.ChronoUnit;
++import java.util.Optional;
++
++import org.apache.commons.configuration2.Configuration;
++import org.apache.commons.lang3.StringUtils;
++import org.apache.james.util.DurationParser;
++
++import com.google.common.base.Preconditions;
++
++public record MeetConfiguration(boolean enabled,
++                                String clientId,
++                                String clientSecret,
++                                URI externalApiBaseUrl,
++                                boolean trustAllSslCerts,
++                                Duration responseTimeout) {
++
++    public static final Duration DEFAULT_RESPONSE_TIMEOUT = Duration.ofSeconds(10);
++
++    static final String MEET_ENABLED_PROPERTY = "meet.enabled";
++    static final String MEET_APPLICATION_CLIENT_ID_PROPERTY = "meet.application.client_id";
++    static final String MEET_APPLICATION_CLIENT_SECRET_PROPERTY = "meet.application.client_secret";
++    static final String MEET_EXTERNAL_API_BASE_URL_PROPERTY = "meet.external.api.base.url";
++    static final String MEET_TRUST_ALL_SSL_CERTS_PROPERTY = "meet.rest.client.trust.all.ssl.certs";
++    static final String MEET_RESPONSE_TIMEOUT_PROPERTY = "meet.rest.client.response.timeout";
++
++    public static MeetConfiguration from(Configuration configuration) {
++        boolean enabled = Boolean.parseBoolean(readProperty(configuration, MEET_ENABLED_PROPERTY, "false"));
++        if (!enabled) {
++            return disabled();
++        }
++
++        String clientId = readProperty(configuration, MEET_APPLICATION_CLIENT_ID_PROPERTY, null);
++        String clientSecret = readProperty(configuration, MEET_APPLICATION_CLIENT_SECRET_PROPERTY, null);
++        String baseUrl = readProperty(configuration, MEET_EXTERNAL_API_BASE_URL_PROPERTY, null);
++
++        Preconditions.checkArgument(StringUtils.isNotEmpty(clientId),
++            MEET_APPLICATION_CLIENT_ID_PROPERTY + " should not be empty when " + MEET_ENABLED_PROPERTY + "=true");
++        Preconditions.checkArgument(StringUtils.isNotEmpty(clientSecret),
++            MEET_APPLICATION_CLIENT_SECRET_PROPERTY + " should not be empty when " + MEET_ENABLED_PROPERTY + "=true");
++        Preconditions.checkArgument(StringUtils.isNotEmpty(baseUrl),
++            MEET_EXTERNAL_API_BASE_URL_PROPERTY + " should not be empty when " + MEET_ENABLED_PROPERTY + "=true");
++
++        boolean trustAllSslCerts = Boolean.parseBoolean(readProperty(configuration, MEET_TRUST_ALL_SSL_CERTS_PROPERTY, "false"));
++        Duration responseTimeout = Optional.ofNullable(readProperty(configuration, MEET_RESPONSE_TIMEOUT_PROPERTY, null))
++            .map(string -> DurationParser.parse(string, ChronoUnit.MILLIS))
++            .map(duration -> {
++                Preconditions.checkArgument(duration.isPositive(), "Response timeout should not be negative");
++                return duration;
++            })
++            .orElse(DEFAULT_RESPONSE_TIMEOUT);
++
++        return new MeetConfiguration(true, clientId, clientSecret, URI.create(baseUrl), trustAllSslCerts, responseTimeout);
++    }
++
++    /**
++     * Read a property with three fallback layers, in order of precedence:
++     * 1. Java system property (e.g. -Dmeet.enabled=true)
++     * 2. Environment variable with the exact dotted name (e.g. meet.enabled=true)
++     *    — how docker-compose feeds this in production.
++     * 3. The Apache Commons {@link Configuration} (configuration.properties file).
++     *
++     * Apache Commons Configuration does not auto-pick env vars, so we need the
++     * explicit fallback for the docker-compose deployment path.
++     */
++    private static String readProperty(Configuration configuration, String key, String defaultValue) {
++        String sysProp = System.getProperty(key);
++        if (StringUtils.isNotEmpty(sysProp)) {
++            return sysProp;
++        }
++        String env = System.getenv(key);
++        if (StringUtils.isNotEmpty(env)) {
++            return env;
++        }
++        return configuration.getString(key, defaultValue);
++    }
++
++    public static MeetConfiguration disabled() {
++        return new MeetConfiguration(false, null, null, null, false, DEFAULT_RESPONSE_TIMEOUT);
++    }
++}
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationConsumer.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationConsumer.java
+new file mode 100644
+index 00000000..43924dfb
+--- /dev/null
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationConsumer.java
+@@ -0,0 +1,198 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import static com.linagora.calendar.amqp.CalendarAmqpModule.INJECT_KEY_DAV;
++import static org.apache.james.backends.rabbitmq.Constants.DURABLE;
++import static org.apache.james.backends.rabbitmq.Constants.EMPTY_ROUTING_KEY;
++import static org.apache.james.util.ReactorUtils.DEFAULT_CONCURRENCY;
++
++import java.io.Closeable;
++import java.util.Arrays;
++import java.util.EnumMap;
++import java.util.Map;
++import java.util.function.Supplier;
++
++import jakarta.annotation.PreDestroy;
++import jakarta.inject.Inject;
++import jakarta.inject.Singleton;
++
++import org.apache.james.backends.rabbitmq.QueueArguments;
++import org.apache.james.backends.rabbitmq.ReactorRabbitMQChannelPool;
++import org.apache.james.backends.rabbitmq.ReceiverProvider;
++import org.apache.james.lifecycle.api.Startable;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++import com.google.inject.name.Named;
++import com.linagora.calendar.amqp.CalendarEventMessage;
++import com.rabbitmq.client.BuiltinExchangeType;
++
++import reactor.core.Disposable;
++import reactor.core.publisher.Flux;
++import reactor.core.publisher.Mono;
++import reactor.core.scheduler.Schedulers;
++import reactor.rabbitmq.AcknowledgableDelivery;
++import reactor.rabbitmq.BindingSpecification;
++import reactor.rabbitmq.ConsumeOptions;
++import reactor.rabbitmq.ExchangeSpecification;
++import reactor.rabbitmq.QueueSpecification;
++import reactor.rabbitmq.Receiver;
++import reactor.rabbitmq.Sender;
++
++/**
++ * Dedicated AMQP consumer that observes calendar event save/update events
++ * and grants Meet host delegation as described by
++ * {@link MeetHostDelegationService}. Mirrors the structure of
++ * {@code EventIndexerConsumer} — separate queues, separate dead-letter
++ * bindings, own reconnection handler — so a failure here never affects
++ * calendar indexing or other side-effects.
++ */
++public class MeetHostDelegationConsumer implements Closeable, Startable {
++    private static final Logger LOGGER = LoggerFactory.getLogger(MeetHostDelegationConsumer.class);
++    private static final boolean REQUEUE_ON_NACK = true;
++
++    public enum Queue {
++        ADD("calendar:event:created", "tcalendar:event:created:meet-host-delegation", "tcalendar:event:created:meet-host-delegation-dead-letter"),
++        UPDATE("calendar:event:updated", "tcalendar:event:updated:meet-host-delegation", "tcalendar:event:updated:meet-host-delegation-dead-letter");
++
++        private final String exchangeName;
++        private final String queueName;
++        private final String deadLetter;
++
++        Queue(String exchangeName, String queueName, String deadLetter) {
++            this.exchangeName = exchangeName;
++            this.queueName = queueName;
++            this.deadLetter = deadLetter;
++        }
++
++        public String queueName() {
++            return queueName;
++        }
++
++        public String deadLetter() {
++            return deadLetter;
++        }
++    }
++
++    private final ReceiverProvider receiverProvider;
++    private final Supplier<QueueArguments.Builder> queueArgumentSupplier;
++    private final Sender sender;
++    private final MeetHostDelegationService meetHostDelegationService;
++    private final MeetConfiguration meetConfiguration;
++    private final Map<Queue, Disposable> consumeDisposableMap;
++
++    @Inject
++    @Singleton
++    public MeetHostDelegationConsumer(ReactorRabbitMQChannelPool channelPool,
++                                      @Named(INJECT_KEY_DAV) Supplier<QueueArguments.Builder> queueArgumentSupplier,
++                                      MeetHostDelegationService meetHostDelegationService,
++                                      MeetConfiguration meetConfiguration) {
++        this.receiverProvider = channelPool::createReceiver;
++        this.queueArgumentSupplier = queueArgumentSupplier;
++        this.sender = channelPool.getSender();
++        this.meetHostDelegationService = meetHostDelegationService;
++        this.meetConfiguration = meetConfiguration;
++        this.consumeDisposableMap = new EnumMap<>(Queue.class);
++    }
++
++    public void init() {
++        if (!meetConfiguration.enabled()) {
++            LOGGER.info("Meet host delegation is disabled — skipping AMQP consumer initialization");
++            return;
++        }
++        Arrays.stream(Queue.values()).forEach(this::declareExchangeAndQueue);
++        start();
++    }
++
++    public void start() {
++        if (!meetConfiguration.enabled()) {
++            return;
++        }
++        Arrays.stream(Queue.values())
++            .forEach(queue -> consumeDisposableMap.put(queue, doConsumeCalendarEventMessages(queue)));
++    }
++
++    public void restart() {
++        close();
++        consumeDisposableMap.clear();
++        start();
++    }
++
++    @Override
++    @PreDestroy
++    public void close() {
++        LOGGER.info("Trying to stop meet host delegation consumer");
++        consumeDisposableMap.values().forEach(disposable -> {
++            if (!disposable.isDisposed()) {
++                disposable.dispose();
++            }
++        });
++    }
++
++    private void declareExchangeAndQueue(Queue q) {
++        Flux.concat(
++                sender.declareExchange(ExchangeSpecification.exchange(q.exchangeName)
++                    .durable(DURABLE).type(BuiltinExchangeType.FANOUT.getType())),
++                sender.declareExchange(ExchangeSpecification.exchange(q.deadLetter)
++                    .durable(DURABLE).type(BuiltinExchangeType.FANOUT.getType())),
++                sender.declareQueue(QueueSpecification.queue(q.deadLetter)
++                    .durable(DURABLE)
++                    .arguments(queueArgumentSupplier.get().build())),
++                sender.bind(BindingSpecification.binding()
++                    .exchange(q.deadLetter)
++                    .queue(q.deadLetter)
++                    .routingKey(EMPTY_ROUTING_KEY)),
++                sender.declareQueue(QueueSpecification.queue(q.queueName)
++                    .durable(DURABLE)
++                    .arguments(queueArgumentSupplier.get()
++                        .deadLetter(q.deadLetter)
++                        .build())),
++                sender.bind(BindingSpecification.binding()
++                    .exchange(q.exchangeName)
++                    .queue(q.queueName)
++                    .routingKey(EMPTY_ROUTING_KEY)))
++            .then()
++            .block();
++    }
++
++    private Disposable doConsumeCalendarEventMessages(Queue queue) {
++        return delivery(queue.queueName)
++            .flatMap(this::messageConsume, DEFAULT_CONCURRENCY)
++            .subscribeOn(Schedulers.boundedElastic())
++            .subscribe();
++    }
++
++    public Flux<AcknowledgableDelivery> delivery(String queue) {
++        return Flux.using(receiverProvider::createReceiver,
++            receiver -> receiver.consumeManualAck(queue, new ConsumeOptions().qos(DEFAULT_CONCURRENCY)),
++            Receiver::close);
++    }
++
++    private Mono<?> messageConsume(AcknowledgableDelivery ackDelivery) {
++        return Mono.fromCallable(() -> CalendarEventMessage.CreatedOrUpdated.deserialize(ackDelivery.getBody()))
++            .flatMap(meetHostDelegationService::onEventSaved)
++            .doOnSuccess(_ -> ackDelivery.ack())
++            .onErrorResume(error -> {
++                LOGGER.warn("Meet host delegation consumer error — nack'ing message (no requeue)", error);
++                ackDelivery.nack(!REQUEUE_ON_NACK);
++                return Mono.empty();
++            });
++    }
++}
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationReconnectionHandler.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationReconnectionHandler.java
+new file mode 100644
+index 00000000..5bff2358
+--- /dev/null
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationReconnectionHandler.java
+@@ -0,0 +1,48 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import jakarta.inject.Inject;
++
++import org.apache.james.backends.rabbitmq.SimpleConnectionPool;
++import org.reactivestreams.Publisher;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++import com.rabbitmq.client.Connection;
++
++import reactor.core.publisher.Mono;
++
++public class MeetHostDelegationReconnectionHandler implements SimpleConnectionPool.ReconnectionHandler {
++    private static final Logger LOGGER = LoggerFactory.getLogger(MeetHostDelegationReconnectionHandler.class);
++
++    private final MeetHostDelegationConsumer consumer;
++
++    @Inject
++    public MeetHostDelegationReconnectionHandler(MeetHostDelegationConsumer consumer) {
++        this.consumer = consumer;
++    }
++
++    @Override
++    public Publisher<Void> handleReconnection(Connection connection) {
++        return Mono.fromRunnable(consumer::restart)
++            .doOnError(error -> LOGGER.error("Error while handling reconnection for meet host delegation consumer", error))
++            .then();
++    }
++}
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationService.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationService.java
+new file mode 100644
+index 00000000..78ad1eed
+--- /dev/null
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetHostDelegationService.java
+@@ -0,0 +1,180 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import java.net.URI;
++import java.net.URISyntaxException;
++import java.util.Arrays;
++import java.util.List;
++import java.util.Optional;
++
++import jakarta.inject.Inject;
++
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++import com.fasterxml.jackson.databind.JsonNode;
++import com.google.common.base.Splitter;
++import com.linagora.calendar.amqp.CalendarEventMessage;
++import com.linagora.calendar.amqp.EventFieldConverter;
++import com.linagora.calendar.amqp.EventProperty;
++
++import reactor.core.publisher.Flux;
++import reactor.core.publisher.Mono;
++
++/**
++ * On event save, if the ICS carries a Meet URL (X-OPENPAAS-VIDEOCONFERENCE)
++ * and one or more delegate emails (X-TWAKE-DELEGATE-HOSTS), grant each
++ * delegate administrator access on the underlying Meet room via the
++ * external Application API. Failures are logged and swallowed — event
++ * processing must never fail because of Meet unavailability.
++ */
++public class MeetHostDelegationService {
++    private static final Logger LOGGER = LoggerFactory.getLogger(MeetHostDelegationService.class);
++    private static final Splitter DELEGATE_SPLITTER = Splitter.on(',').trimResults().omitEmptyStrings();
++
++    private final MeetConfiguration config;
++    private final MeetApplicationClient client;
++
++    @Inject
++    public MeetHostDelegationService(MeetConfiguration config, MeetApplicationClient client) {
++        this.config = config;
++        this.client = client;
++    }
++
++    public Mono<Void> onEventSaved(CalendarEventMessage eventMessage) {
++        if (!config.enabled()) {
++            return Mono.empty();
++        }
++
++        return Mono.fromCallable(() -> extractDelegations(eventMessage.calendarEvent()))
++            .flatMapMany(Flux::fromIterable)
++            .concatMap(delegation -> grantForDelegation(delegation)
++                .onErrorResume(error -> {
++                    LOGGER.warn("Meet host delegation failed for delegation {} — skipping", delegation, error);
++                    return Mono.empty();
++                }))
++            .then()
++            .onErrorResume(error -> {
++                LOGGER.warn("Meet host delegation crashed unexpectedly — skipping", error);
++                return Mono.empty();
++            });
++    }
++
++    private Mono<Void> grantForDelegation(Delegation delegation) {
++        return client.fetchApplicationToken(delegation.organizerEmail())
++            .flatMap(token -> resolveRoomId(token, delegation)
++                .flatMap(roomIdOpt -> {
++                    if (roomIdOpt.isEmpty()) {
++                        LOGGER.warn("Meet room not found for slug '{}' (organizer {}) — skipping delegates {}",
++                            delegation.roomSlug(), delegation.organizerEmail(), delegation.delegateEmails());
++                        return Mono.<Void>empty();
++                    }
++                    String roomId = roomIdOpt.get();
++                    return Flux.fromIterable(delegation.delegateEmails())
++                        .concatMap(email -> client.grantAccess(token, roomId, email)
++                            .onErrorResume(error -> {
++                                LOGGER.warn("Grant failed for delegate {} on room {} — skipping this delegate",
++                                    email, roomId, error);
++                                return Mono.empty();
++                            }))
++                        .then();
++                }));
++    }
++
++    private Mono<Optional<String>> resolveRoomId(String token, Delegation delegation) {
++        if (delegation.roomSlug().isEmpty()) {
++            return Mono.just(Optional.empty());
++        }
++        return client.findRoomIdBySlug(token, delegation.roomSlug());
++    }
++
++    /**
++     * Walks the raw vcalendar JsonNode and returns one {@link Delegation}
++     * per VEVENT that has both an organizer with an email, a
++     * X-OPENPAAS-VIDEOCONFERENCE URL, and at least one delegate email
++     * in X-TWAKE-DELEGATE-HOSTS. VEVENTs missing any of those are
++     * silently skipped.
++     */
++    static List<Delegation> extractDelegations(JsonNode calendarEvent) {
++        List<List<EventProperty>> perEvent = EventFieldConverter.extractVEventProperties(
++            calendarEvent,
++            EventProperty.ORGANIZER_PROPERTY,
++            EventProperty.VIDEOCONFERENCE,
++            EventProperty.DELEGATE_HOSTS);
++
++        return perEvent.stream()
++            .map(MeetHostDelegationService::toDelegation)
++            .flatMap(Optional::stream)
++            .toList();
++    }
++
++    private static Optional<Delegation> toDelegation(List<EventProperty> properties) {
++        String organizerEmail = null;
++        String meetUrl = null;
++        String delegatesRaw = null;
++        for (EventProperty property : properties) {
++            switch (property.name()) {
++                case EventProperty.ORGANIZER_PROPERTY -> {
++                    if (property instanceof EventProperty.OrganizerProperty organizer) {
++                        organizerEmail = organizer.getMailAddress().asString();
++                    }
++                }
++                case EventProperty.VIDEOCONFERENCE -> meetUrl = property.value();
++                case EventProperty.DELEGATE_HOSTS -> delegatesRaw = property.value();
++                default -> { }
++            }
++        }
++        if (organizerEmail == null || meetUrl == null || delegatesRaw == null) {
++            return Optional.empty();
++        }
++        List<String> delegates = DELEGATE_SPLITTER.splitToList(delegatesRaw);
++        if (delegates.isEmpty()) {
++            return Optional.empty();
++        }
++        String slug = extractSlug(meetUrl).orElse("");
++        if (slug.isEmpty()) {
++            return Optional.empty();
++        }
++        return Optional.of(new Delegation(organizerEmail, slug, delegates));
++    }
++
++    static Optional<String> extractSlug(String meetUrl) {
++        try {
++            URI uri = new URI(meetUrl);
++            String path = uri.getRawPath();
++            if (path == null || path.isEmpty()) {
++                return Optional.empty();
++            }
++            List<String> segments = Arrays.stream(path.split("/"))
++                .filter(s -> !s.isBlank())
++                .toList();
++            if (segments.isEmpty()) {
++                return Optional.empty();
++            }
++            return Optional.of(segments.get(segments.size() - 1));
++        } catch (URISyntaxException e) {
++            return Optional.empty();
++        }
++    }
++
++    /** Parsed hosting delegation intent, per VEVENT. */
++    public record Delegation(String organizerEmail, String roomSlug, List<String> delegateEmails) {
++    }
++}
+diff --git a/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetIntegrationModule.java b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetIntegrationModule.java
+new file mode 100644
+index 00000000..04563dfd
+--- /dev/null
++++ b/calendar-amqp/src/main/java/com/linagora/calendar/amqp/meet/MeetIntegrationModule.java
+@@ -0,0 +1,76 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import java.io.FileNotFoundException;
++
++import javax.net.ssl.SSLException;
++
++import org.apache.commons.configuration2.ex.ConfigurationException;
++import org.apache.james.backends.rabbitmq.SimpleConnectionPool;
++import org.apache.james.utils.InitializationOperation;
++import org.apache.james.utils.InitilizationOperationBuilder;
++import org.apache.james.utils.PropertiesProvider;
++import org.slf4j.Logger;
++import org.slf4j.LoggerFactory;
++
++import com.google.inject.AbstractModule;
++import com.google.inject.Provides;
++import com.google.inject.Scopes;
++import com.google.inject.Singleton;
++import com.google.inject.multibindings.ProvidesIntoSet;
++
++public class MeetIntegrationModule extends AbstractModule {
++    private static final Logger LOGGER = LoggerFactory.getLogger(MeetIntegrationModule.class);
++
++    @Override
++    protected void configure() {
++        bind(MeetHostDelegationConsumer.class).in(Scopes.SINGLETON);
++        bind(MeetHostDelegationService.class).in(Scopes.SINGLETON);
++    }
++
++    @Provides
++    @Singleton
++    public MeetConfiguration provideMeetConfiguration(PropertiesProvider propertiesProvider) throws ConfigurationException {
++        try {
++            return MeetConfiguration.from(propertiesProvider.getConfiguration("configuration"));
++        } catch (FileNotFoundException e) {
++            LOGGER.info("configuration.properties not found — Meet host delegation stays disabled");
++            return MeetConfiguration.disabled();
++        }
++    }
++
++    @Provides
++    @Singleton
++    public MeetApplicationClient provideMeetApplicationClient(MeetConfiguration configuration) throws SSLException {
++        return new MeetApplicationClient(configuration);
++    }
++
++    @ProvidesIntoSet
++    SimpleConnectionPool.ReconnectionHandler provideMeetReconnectionHandler(MeetHostDelegationReconnectionHandler handler) {
++        return handler;
++    }
++
++    @ProvidesIntoSet
++    public InitializationOperation initializeMeetHostDelegationConsumer(MeetHostDelegationConsumer instance) {
++        return InitilizationOperationBuilder
++            .forClass(MeetHostDelegationConsumer.class)
++            .init(instance::init);
++    }
++}
+diff --git a/calendar-amqp/src/test/java/com/linagora/calendar/amqp/meet/MeetHostDelegationServiceTest.java b/calendar-amqp/src/test/java/com/linagora/calendar/amqp/meet/MeetHostDelegationServiceTest.java
+new file mode 100644
+index 00000000..17fb34d2
+--- /dev/null
++++ b/calendar-amqp/src/test/java/com/linagora/calendar/amqp/meet/MeetHostDelegationServiceTest.java
+@@ -0,0 +1,314 @@
++/********************************************************************
++ *  As a subpart of Twake Mail, this file is edited by Linagora.    *
++ *                                                                  *
++ *  https://twake-mail.com/                                         *
++ *  https://linagora.com                                            *
++ *                                                                  *
++ *  This file is subject to The Affero Gnu Public License           *
++ *  version 3.                                                      *
++ *                                                                  *
++ *  https://www.gnu.org/licenses/agpl-3.0.en.html                   *
++ *                                                                  *
++ *  This program is distributed in the hope that it will be         *
++ *  useful, but WITHOUT ANY WARRANTY; without even the implied      *
++ *  warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR         *
++ *  PURPOSE. See the GNU Affero General Public License for          *
++ *  more details.                                                   *
++ ********************************************************************/
++
++package com.linagora.calendar.amqp.meet;
++
++import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
++import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
++import static com.github.tomakehurst.wiremock.client.WireMock.equalToJson;
++import static com.github.tomakehurst.wiremock.client.WireMock.get;
++import static com.github.tomakehurst.wiremock.client.WireMock.matchingJsonPath;
++import static com.github.tomakehurst.wiremock.client.WireMock.post;
++import static com.github.tomakehurst.wiremock.client.WireMock.postRequestedFor;
++import static com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo;
++import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
++import static com.github.tomakehurst.wiremock.client.WireMock.verify;
++import static org.assertj.core.api.Assertions.assertThat;
++
++import java.net.URI;
++import java.nio.charset.StandardCharsets;
++import java.time.Duration;
++import java.util.Optional;
++
++import org.junit.jupiter.api.AfterEach;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++
++import com.fasterxml.jackson.databind.JsonNode;
++import com.fasterxml.jackson.databind.ObjectMapper;
++import com.github.tomakehurst.wiremock.WireMockServer;
++import com.github.tomakehurst.wiremock.client.WireMock;
++import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
++import com.linagora.calendar.amqp.CalendarEventMessage;
++
++public class MeetHostDelegationServiceTest {
++    private static final ObjectMapper MAPPER = new ObjectMapper();
++    private static final String ORGANIZER_EMAIL = "alice@example.com";
++    private static final String DELEGATE_EMAIL = "bob@example.com";
++    private static final String SECOND_DELEGATE_EMAIL = "carol@example.com";
++    private static final String ROOM_SLUG = "team-standup";
++    private static final String ROOM_UUID = "550e8400-e29b-41d4-a716-446655440000";
++    private static final String ACCESS_TOKEN = "test-app-jwt-token";
++
++    private WireMockServer wireMockServer;
++    private MeetHostDelegationService service;
++
++    @BeforeEach
++    void setUp() throws Exception {
++        wireMockServer = new WireMockServer(WireMockConfiguration.options().dynamicPort());
++        wireMockServer.start();
++        WireMock.configureFor("localhost", wireMockServer.port());
++
++        MeetConfiguration configuration = new MeetConfiguration(
++            true,
++            "test-client-id",
++            "test-client-secret",
++            URI.create("http://localhost:" + wireMockServer.port()),
++            false,
++            Duration.ofSeconds(5));
++        MeetApplicationClient client = new MeetApplicationClient(configuration);
++        service = new MeetHostDelegationService(configuration, client);
++    }
++
++    @AfterEach
++    void tearDown() {
++        wireMockServer.stop();
++    }
++
++    @Test
++    void shouldGrantOnHappyPath() {
++        stubTokenEndpoint();
++        stubRoomsList(ROOM_SLUG, ROOM_UUID);
++        stubGrantAccess(ROOM_UUID, 201);
++
++        service.onEventSaved(eventMessage(ORGANIZER_EMAIL, meetUrl(ROOM_SLUG), DELEGATE_EMAIL))
++            .block();
++
++        verify(postRequestedFor(urlEqualTo("/external-api/v1.0/application/token/"))
++            .withRequestBody(matchingJsonPath("$.scope", equalTo(ORGANIZER_EMAIL)))
++            .withRequestBody(matchingJsonPath("$.grant_type", equalTo("client_credentials"))));
++        verify(postRequestedFor(urlEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/"))
++            .withRequestBody(matchingJsonPath("$.email", equalTo(DELEGATE_EMAIL)))
++            .withRequestBody(matchingJsonPath("$.role", equalTo("administrator"))));
++    }
++
++    @Test
++    void shouldContinueWhenOneDelegateFails() {
++        stubTokenEndpoint();
++        stubRoomsList(ROOM_SLUG, ROOM_UUID);
++
++        // First delegate: server returns 500. Second delegate: 201.
++        wireMockServer.stubFor(post(urlPathEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/"))
++            .withRequestBody(matchingJsonPath("$.email", equalTo(DELEGATE_EMAIL)))
++            .willReturn(aResponse().withStatus(500).withBody("boom")));
++        wireMockServer.stubFor(post(urlPathEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/"))
++            .withRequestBody(matchingJsonPath("$.email", equalTo(SECOND_DELEGATE_EMAIL)))
++            .willReturn(aResponse().withStatus(201).withBody("{\"created\":true}")));
++
++        service.onEventSaved(eventMessage(ORGANIZER_EMAIL, meetUrl(ROOM_SLUG),
++            DELEGATE_EMAIL + "," + SECOND_DELEGATE_EMAIL)).block();
++
++        verify(postRequestedFor(urlPathEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/"))
++            .withRequestBody(matchingJsonPath("$.email", equalTo(DELEGATE_EMAIL))));
++        verify(postRequestedFor(urlPathEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/"))
++            .withRequestBody(matchingJsonPath("$.email", equalTo(SECOND_DELEGATE_EMAIL))));
++    }
++
++    @Test
++    void shouldNotCallMeetWhenNoDelegateHostsInIcs() {
++        service.onEventSaved(eventMessageWithoutDelegates(ORGANIZER_EMAIL, meetUrl(ROOM_SLUG)))
++            .block();
++
++        verify(0, postRequestedFor(urlEqualTo("/external-api/v1.0/application/token/")));
++    }
++
++    @Test
++    void shouldNotCallMeetWhenNoVideoconferenceInIcs() {
++        service.onEventSaved(eventMessageWithoutMeetUrl(ORGANIZER_EMAIL, DELEGATE_EMAIL))
++            .block();
++
++        verify(0, postRequestedFor(urlEqualTo("/external-api/v1.0/application/token/")));
++    }
++
++    @Test
++    void shouldNotThrowWhenTokenEndpointReturnsError() {
++        wireMockServer.stubFor(post(urlEqualTo("/external-api/v1.0/application/token/"))
++            .willReturn(aResponse().withStatus(401).withBody("Invalid credentials")));
++
++        service.onEventSaved(eventMessage(ORGANIZER_EMAIL, meetUrl(ROOM_SLUG), DELEGATE_EMAIL))
++            .block();
++
++        verify(0, postRequestedFor(urlPathEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/")));
++    }
++
++    @Test
++    void shouldNotGrantWhenSlugNotFound() {
++        stubTokenEndpoint();
++        stubRoomsListEmpty();
++
++        service.onEventSaved(eventMessage(ORGANIZER_EMAIL, meetUrl("unknown-slug"), DELEGATE_EMAIL))
++            .block();
++
++        verify(0, postRequestedFor(urlPathEqualTo("/external-api/v1.0/rooms/" + ROOM_UUID + "/grant-access/")));
++    }
++
++    @Test
++    void shouldBeNoopWhenDisabled() throws Exception {
++        MeetConfiguration disabled = MeetConfiguration.disabled();
++        MeetApplicationClient noopClient = new MeetApplicationClient(disabled);
++        MeetHostDelegationService disabledService = new MeetHostDelegationService(disabled, noopClient);
++
++        disabledService.onEventSaved(eventMessage(ORGANIZER_EMAIL, meetUrl(ROOM_SLUG), DELEGATE_EMAIL))
++            .block();
++
++        verify(0, postRequestedFor(urlEqualTo("/external-api/v1.0/application/token/")));
++    }
++
++    @Test
++    void extractSlugShouldReturnLastPathSegment() {
++        assertThat(MeetHostDelegationService.extractSlug("https://meet.example.com/team-standup"))
++            .contains("team-standup");
++        assertThat(MeetHostDelegationService.extractSlug("https://meet.example.com/team-standup/"))
++            .contains("team-standup");
++        assertThat(MeetHostDelegationService.extractSlug("https://meet.example.com/"))
++            .isEmpty();
++        assertThat(MeetHostDelegationService.extractSlug("not a url"))
++            .isEmpty();
++    }
++
++    private String meetUrl(String slug) {
++        return "https://meet.example.com/" + slug;
++    }
++
++    private static CalendarEventMessage eventMessage(String organizerEmail,
++                                                     String videoconferenceUrl,
++                                                     String delegateHosts) {
++        String json = """
++            {
++                "eventPath": "/calendars/domain1/calendar1/event1.ics",
++                "event": [
++                    "vcalendar",
++                    [],
++                    [
++                        [
++                            "vevent",
++                            [
++                                ["uid", {}, "text", "event-uid-1"],
++                                ["dtstart", {}, "date-time", "2026-08-01T10:00:00Z"],
++                                ["dtstamp", {}, "date-time", "2026-08-01T09:00:00Z"],
++                                ["summary", {}, "text", "Team standup"],
++                                ["organizer", {"cn":"Alice"}, "cal-address", "mailto:%s"],
++                                ["x-openpaas-videoconference", {}, "text", "%s"],
++                                ["x-twake-delegate-hosts", {}, "text", "%s"]
++                            ],
++                            []
++                        ]
++                    ]
++                ],
++                "import": false
++            }""".formatted(organizerEmail, videoconferenceUrl, delegateHosts);
++        return CalendarEventMessage.CreatedOrUpdated.deserialize(json.getBytes(StandardCharsets.UTF_8));
++    }
++
++    private static CalendarEventMessage eventMessageWithoutDelegates(String organizerEmail, String videoconferenceUrl) {
++        String json = """
++            {
++                "eventPath": "/calendars/domain1/calendar1/event1.ics",
++                "event": [
++                    "vcalendar",
++                    [],
++                    [
++                        [
++                            "vevent",
++                            [
++                                ["uid", {}, "text", "event-uid-1"],
++                                ["dtstart", {}, "date-time", "2026-08-01T10:00:00Z"],
++                                ["dtstamp", {}, "date-time", "2026-08-01T09:00:00Z"],
++                                ["summary", {}, "text", "Standup"],
++                                ["organizer", {"cn":"Alice"}, "cal-address", "mailto:%s"],
++                                ["x-openpaas-videoconference", {}, "text", "%s"]
++                            ],
++                            []
++                        ]
++                    ]
++                ],
++                "import": false
++            }""".formatted(organizerEmail, videoconferenceUrl);
++        return CalendarEventMessage.CreatedOrUpdated.deserialize(json.getBytes(StandardCharsets.UTF_8));
++    }
++
++    private static CalendarEventMessage eventMessageWithoutMeetUrl(String organizerEmail, String delegateHosts) {
++        String json = """
++            {
++                "eventPath": "/calendars/domain1/calendar1/event1.ics",
++                "event": [
++                    "vcalendar",
++                    [],
++                    [
++                        [
++                            "vevent",
++                            [
++                                ["uid", {}, "text", "event-uid-1"],
++                                ["dtstart", {}, "date-time", "2026-08-01T10:00:00Z"],
++                                ["dtstamp", {}, "date-time", "2026-08-01T09:00:00Z"],
++                                ["summary", {}, "text", "Meeting"],
++                                ["organizer", {"cn":"Alice"}, "cal-address", "mailto:%s"],
++                                ["x-twake-delegate-hosts", {}, "text", "%s"]
++                            ],
++                            []
++                        ]
++                    ]
++                ],
++                "import": false
++            }""".formatted(organizerEmail, delegateHosts);
++        return CalendarEventMessage.CreatedOrUpdated.deserialize(json.getBytes(StandardCharsets.UTF_8));
++    }
++
++    private void stubTokenEndpoint() {
++        wireMockServer.stubFor(post(urlEqualTo("/external-api/v1.0/application/token/"))
++            .willReturn(aResponse()
++                .withHeader("Content-Type", "application/json")
++                .withStatus(200)
++                .withBody("{\"access_token\":\"" + ACCESS_TOKEN + "\"}")));
++    }
++
++    private void stubRoomsList(String slug, String uuid) {
++        String body;
++        try {
++            body = MAPPER.writeValueAsString(rooms(slug, uuid));
++        } catch (Exception e) {
++            throw new IllegalStateException(e);
++        }
++        wireMockServer.stubFor(get(urlEqualTo("/external-api/v1.0/rooms/"))
++            .willReturn(aResponse()
++                .withHeader("Content-Type", "application/json")
++                .withStatus(200)
++                .withBody(body)));
++    }
++
++    private void stubRoomsListEmpty() {
++        wireMockServer.stubFor(get(urlEqualTo("/external-api/v1.0/rooms/"))
++            .willReturn(aResponse()
++                .withHeader("Content-Type", "application/json")
++                .withStatus(200)
++                .withBody("[]")));
++    }
++
++    private void stubGrantAccess(String roomUuid, int status) {
++        wireMockServer.stubFor(post(urlPathEqualTo("/external-api/v1.0/rooms/" + roomUuid + "/grant-access/"))
++            .willReturn(aResponse()
++                .withHeader("Content-Type", "application/json")
++                .withStatus(status)
++                .withBody("{\"created\":true}")));
++    }
++
++    private static JsonNode rooms(String slug, String uuid) throws Exception {
++        String json = "[{\"id\":\"" + uuid + "\",\"slug\":\"" + slug + "\",\"name\":\"" + slug + "\"}]";
++        return MAPPER.readTree(json);
++    }
++}
