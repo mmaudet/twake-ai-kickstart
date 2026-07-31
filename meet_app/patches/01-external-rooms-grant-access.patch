@@ -1,0 +1,150 @@
+diff --git a/src/backend/core/external_api/permissions.py b/src/backend/core/external_api/permissions.py
+index 37591b3f..5c656061 100644
+--- a/src/backend/core/external_api/permissions.py
++++ b/src/backend/core/external_api/permissions.py
+@@ -77,6 +77,7 @@ class HasRequiredRoomScope(BaseScopePermission):
+     """Permission class for Room-related operations."""
+ 
+     scope_map = {
++        "grant_access": models.ApplicationScope.ROOMS_GRANT_ACCESS,
+         "list": models.ApplicationScope.ROOMS_LIST,
+         "retrieve": models.ApplicationScope.ROOMS_RETRIEVE,
+         "create": models.ApplicationScope.ROOMS_CREATE,
+diff --git a/src/backend/core/external_api/serializers.py b/src/backend/core/external_api/serializers.py
+index 03f152d9..1caf9d3c 100644
+--- a/src/backend/core/external_api/serializers.py
++++ b/src/backend/core/external_api/serializers.py
+@@ -102,3 +102,22 @@ class RoomSerializer(serializers.ModelSerializer):
+         validated_data.setdefault("configuration", {})
+ 
+         return super().create(validated_data)
++
++
++class GrantAccessSerializer(BaseValidationOnlySerializer):
++    """Validate a request to grant a delegate ADMIN/MEMBER access to a room.
++
++    The delegate is identified by email so integrations can nominate a
++    Twake Calendar attendee without knowing their internal user id. If the
++    email doesn't match an existing account, ProvisionalUserService creates
++    a placeholder that is claimed on the delegate's first OIDC login.
++    """
++
++    email = serializers.EmailField(write_only=True)
++    role = serializers.ChoiceField(
++        choices=[
++            (models.RoleChoices.ADMIN, "admin"),
++            (models.RoleChoices.MEMBER, "member"),
++        ],
++        default=models.RoleChoices.ADMIN,
++    )
+diff --git a/src/backend/core/external_api/viewsets.py b/src/backend/core/external_api/viewsets.py
+index 093961a6..3f774932 100644
+--- a/src/backend/core/external_api/viewsets.py
++++ b/src/backend/core/external_api/viewsets.py
+@@ -218,3 +218,92 @@ class RoomViewSet(
+                 "$set": {"email": self.request.user.email},
+             },
+         )
++
++    @decorators.action(
++        detail=True,
++        methods=["post"],
++        url_path="grant-access",
++        url_name="grant_access",
++    )
++    def grant_access(self, request, pk=None):  # pylint: disable=unused-argument
++        """Grant ADMIN (or MEMBER) access on the room to another user.
++
++        Called by an integration on behalf of the meeting organiser to
++        delegate host controls (admit lobby participants, manage
++        recording, etc.) to another attendee. The room's owner-scoped
++        JWT authenticates the request; the delegate is looked up (or
++        provisioned) by email.
++
++        Body: {"email": "<delegate@example.com>", "role": "admin"|"member"}
++        """
++        room = self.get_object()
++
++        # Only OWNER or ADMIN on the room can delegate access — matches
++        # what HasPrivilegesOnRoom enforces on the internal API.
++        if not room.is_administrator_or_owner(request.user):
++            raise drf_exceptions.PermissionDenied(
++                "You must be admin or owner of the room to grant access."
++            )
++
++        serializer = serializers.GrantAccessSerializer(data=request.data)
++        serializer.is_valid(raise_exception=True)
++        email = serializer.validated_data["email"]
++        role = serializer.validated_data["role"]
++
++        client_id = (request.auth or {}).get("client_id", "unknown")
++
++        # Resolve the delegate by email — create a provisional user if
++        # not yet in the DB, so the record survives their first OIDC
++        # login (lasuite claims the placeholder by `sub`).
++        try:
++            delegate, created = ProvisionalUserService().get_or_create(email, client_id)
++        except ProvisionalUserCreationDisabledError as not_found_error:
++            raise drf_exceptions.NotFound(
++                "Delegate user not found and provisional user creation is disabled."
++            ) from not_found_error
++        except ProvisionalUserIntegrityError:
++            return drf_response.Response(
++                {"error": "Failed to create or retrieve delegate user."},
++                status=drf_status.HTTP_409_CONFLICT,
++            )
++
++        # Upsert the ResourceAccess record. If the delegate is already
++        # an OWNER, don't demote them; otherwise create or upgrade.
++        existing = models.ResourceAccess.objects.filter(
++            resource=room, user=delegate
++        ).first()
++        if existing:
++            if existing.role == models.RoleChoices.OWNER:
++                return drf_response.Response(
++                    {"detail": "Delegate is already owner of this room.",
++                     "role": existing.role},
++                    status=drf_status.HTTP_200_OK,
++                )
++            existing.role = role
++            existing.save(update_fields=["role"])
++            access = existing
++            was_created = False
++        else:
++            access = models.ResourceAccess.objects.create(
++                resource=room, user=delegate, role=role
++            )
++            was_created = True
++
++        auth_method = type(request.successful_authenticator).__name__
++        logger.info(
++            "Room access granted via application: room_id=%s, delegate_email=%s, "
++            "role=%s, created_access=%s, provisional_user_created=%s, "
++            "granter_user_id=%s, client_id=%s, auth_method=%s",
++            room.id, email, role, was_created, created,
++            request.user.id, client_id, auth_method,
++        )
++
++        return drf_response.Response(
++            {
++                "email": email,
++                "role": access.role,
++                "created": was_created,
++                "provisional_user_created": created,
++            },
++            status=drf_status.HTTP_201_CREATED if was_created else drf_status.HTTP_200_OK,
++        )
+diff --git a/src/backend/core/models.py b/src/backend/core/models.py
+index fbfcf6be..ea55168c 100644
+--- a/src/backend/core/models.py
++++ b/src/backend/core/models.py
+@@ -769,6 +769,9 @@ class ApplicationScope(models.TextChoices):
+     ROOMS_RETRIEVE = "rooms:retrieve", _("Retrieve room details")
+     ROOMS_UPDATE = "rooms:update", _("Update rooms")
+     ROOMS_DELETE = "rooms:delete", _("Delete rooms")
++    ROOMS_GRANT_ACCESS = "rooms:grant-access", _(
++        "Grant access to another user on a room"
++    )
+ 
+ 
+ class Application(BaseModel):

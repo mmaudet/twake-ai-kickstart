@@ -95,6 +95,17 @@ services:
       # access to designated delegate attendees on the room.
       EXTERNAL_API_ENABLED: "true"
       APPLICATION_ENABLED: "true"
+      APPLICATION_JWT_SECRET_KEY: "ThisIsAnExampleAppJwtKeyForDevPurposeOnly"
+      APPLICATION_JWT_AUDIENCE: "twake-meet-app"
+      APPLICATION_ALLOW_USER_CREATION: "true"                   # let grant-access provision unknown delegates
+      APPLICATION_BASE_URL: "https://meet.${BASE_DOMAIN}"
+      # Required for ProvisionalUserService to actually create users on
+      # grant-access to an unknown email. Both defaults are the "secure"
+      # side; flipped here because our flow (side-service provisions the
+      # delegate, delegate claims the account on first OIDC login by
+      # matching email) requires it.
+      OIDC_FALLBACK_TO_EMAIL_FOR_IDENTIFICATION: "true"
+      OIDC_USER_SUB_FIELD_IMMUTABLE: "false"
     restart: always
     extra_hosts:
       - "auth.${BASE_DOMAIN}:172.27.0.100"
