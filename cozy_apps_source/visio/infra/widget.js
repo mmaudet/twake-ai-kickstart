@@ -407,10 +407,18 @@
       '#visio-upcoming-meets .vum-time{font-variant-numeric:tabular-nums;font-weight:600;font-size:1.05em;min-width:3.5em}',
       '#visio-upcoming-meets .vum-title{font-weight:600;line-height:1.2}',
       '#visio-upcoming-meets .vum-status{display:block;font-size:.78em;opacity:.85;margin-top:2px;font-weight:400}',
+      '#visio-upcoming-meets .vum-actions{display:inline-flex;align-items:center;gap:6px}',
       '#visio-upcoming-meets a.vum-join{',
       '  padding:6px 12px;background:#fff;color:#2FB56B;text-decoration:none;',
       '  border-radius:6px;font-size:.85em;font-weight:600;',
       '}',
+      '#visio-upcoming-meets a.vum-details{',
+      '  display:inline-flex;align-items:center;justify-content:center;',
+      '  width:28px;height:28px;background:rgba(255,255,255,.2);',
+      '  color:#fff;text-decoration:none;border-radius:6px;font-size:.85em;font-weight:600;',
+      '  transition:background .15s ease;',
+      '}',
+      '#visio-upcoming-meets a.vum-details:hover{background:rgba(255,255,255,.35)}',
       '#visio-upcoming-meets a.vum-agenda{',
       '  display:inline-block;padding:6px 12px;background:rgba(255,255,255,.2);',
       '  color:#fff;text-decoration:none;border-radius:6px;font-size:.85em;font-weight:500;',
@@ -538,13 +546,28 @@
         mid.appendChild(title); mid.appendChild(status);
         li.appendChild(mid);
 
+        var actions = document.createElement('div');
+        actions.className = 'vum-actions';
         if (e.meetUrl) {
           var btn = document.createElement('a');
           btn.className = 'vum-join';
           btn.href = e.meetUrl; btn.target = '_blank'; btn.rel = 'noopener';
           btn.textContent = 'Rejoindre';
-          li.appendChild(btn);
+          actions.appendChild(btn);
         }
+        // Deep-link to calendar-ng so the user can see the full event
+        // detail (attendees, description, delegate-host toggle).
+        // calendar-ng has no ?openEvent yet — this lands on the calendar
+        // where the user can find + click the event.
+        var details = document.createElement('a');
+        details.className = 'vum-details';
+        details.href = CFG.calendarUiBase + 'calendar';
+        details.target = '_blank'; details.rel = 'noopener';
+        details.title = 'Voir le détail dans l\'agenda';
+        details.setAttribute('aria-label', 'Voir le détail dans l\'agenda');
+        details.textContent = 'i';
+        actions.appendChild(details);
+        li.appendChild(actions);
         ul.appendChild(li);
       });
       wrap.appendChild(ul);
