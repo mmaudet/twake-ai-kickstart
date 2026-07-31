@@ -19,6 +19,17 @@ server {
     proxy_set_header X-Real-IP $remote_addr;
     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 }
+
+  # WS3 Patch A — Application external API (grant-access for Twake Calendar delegation)
+  location ^~ /external-api/ {
+    proxy_pass http://backend:8000;
+    proxy_set_header Host $host;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Port $server_port;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  }
   # Serve static files with caching
   location ~* ^/assets/.*\.(css|js|json|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot)$ {
       expires 30d;
