@@ -1,0 +1,482 @@
+diff --git a/common/src/components/Attendees/AttendeeChip.tsx b/common/src/components/Attendees/AttendeeChip.tsx
+index d340a9f..ce5bd03 100644
+--- a/common/src/components/Attendees/AttendeeChip.tsx
++++ b/common/src/components/Attendees/AttendeeChip.tsx
+@@ -2,9 +2,16 @@ import { getAccessiblePair } from '@common/utils/getAccessiblePair'
+ import { Box, Chip, Icon, IconButton, useTheme } from '@linagora/twake-mui'
+ import CircleIcon from '@mui/icons-material/Circle'
+ import CloseIcon from '@mui/icons-material/Close'
++import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
++import WorkspacePremiumOutlinedIcon from '@mui/icons-material/WorkspacePremiumOutlined'
+ import { ReactElement } from 'react'
+ import { User } from './types'
+ 
++export interface AttendeeChipAction {
++  isDelegateHost: boolean
++  onToggle: () => void
++}
++
+ export interface AttendeeChipProps {
+   option: string | User
+   getItemProps: (args: { index: number }) => {
+@@ -16,6 +23,11 @@ export interface AttendeeChipProps {
+     onDelete: (event: unknown) => void
+   }
+   getChipIcon?: (user: User) => ReactElement
++  // WS3 host-delegation: when provided, renders a crown toggle inside
++  // the chip label that flips the attendee's is_delegate_host bit.
++  // Return undefined to suppress the toggle for a given user (e.g. the
++  // organizer or a resource).
++  getChipAction?: (user: User) => AttendeeChipAction | undefined
+   index: number
+ }
+ 
+@@ -23,6 +35,7 @@ export const AttendeeChip: React.FC<AttendeeChipProps> = ({
+   option,
+   getItemProps,
+   getChipIcon,
++  getChipAction,
+   index
+ }) => {
+   const theme = useTheme()
+@@ -34,6 +47,8 @@ export const AttendeeChip: React.FC<AttendeeChipProps> = ({
+     : (option.color?.light ?? theme.palette.grey[200])
+   const textColor = getAccessiblePair(chipColor, theme)
+ 
++  const chipAction = !isString && getChipAction ? getChipAction(option) : undefined
++
+   const renderIcon = (): ReactElement | undefined => {
+     if (!isString && getChipIcon) {
+       return getChipIcon(option)
+@@ -65,6 +80,40 @@ export const AttendeeChip: React.FC<AttendeeChipProps> = ({
+     )
+   }
+ 
++  const renderLabel = (): ReactElement => {
++    if (!chipAction) {
++      return <>{label}</>
++    }
++    const CrownIcon = chipAction.isDelegateHost
++      ? WorkspacePremiumIcon
++      : WorkspacePremiumOutlinedIcon
++    return (
++      <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5 }}>
++        <span>{label}</span>
++        <IconButton
++          size="small"
++          onMouseDown={(e): void => {
++            // Stop the Chip from swallowing the click as a "select" event
++            e.stopPropagation()
++          }}
++          onClick={(e): void => {
++            e.stopPropagation()
++            chipAction.onToggle()
++          }}
++          sx={{ padding: 0, color: 'inherit' }}
++          aria-pressed={chipAction.isDelegateHost}
++          title={
++            chipAction.isDelegateHost
++              ? 'Delegate host (will get admin on the Meet room)'
++              : 'Mark as delegate host'
++          }
++        >
++          <CrownIcon fontSize="small" />
++        </IconButton>
++      </Box>
++    )
++  }
++
+   return (
+     <Chip
+       {...getItemProps({ index })}
+@@ -75,9 +124,9 @@ export const AttendeeChip: React.FC<AttendeeChipProps> = ({
+       deleteIcon={renderDeleteIcon()}
+       style={{
+         color: textColor,
+-        maxWidth: '200px'
++        maxWidth: '240px'
+       }}
+-      label={label}
++      label={renderLabel()}
+     />
+   )
+ }
+diff --git a/common/src/components/Attendees/AttendeeSearch.tsx b/common/src/components/Attendees/AttendeeSearch.tsx
+index f924075..c48576b 100644
+--- a/common/src/components/Attendees/AttendeeSearch.tsx
++++ b/common/src/components/Attendees/AttendeeSearch.tsx
+@@ -132,6 +132,10 @@ export const AttendeeSearch: React.FC<{
+   end?: string
+   timezone?: string
+   eventUid?: string | null
++  // WS3 host-delegation: only render the crown toggle on chips when the
++  // event has an active Meet URL — delegating admin on a non-existing
++  // room is meaningless.
++  hasVideoConference?: boolean
+ }> = ({
+   attendees,
+   setAttendees,
+@@ -141,7 +145,8 @@ export const AttendeeSearch: React.FC<{
+   start,
+   end,
+   timezone,
+-  eventUid
++  eventUid,
++  hasVideoConference
+ }) => {
+   const {
+     selectedUsers,
+@@ -164,12 +169,29 @@ export const AttendeeSearch: React.FC<{
+     })
+     setAddedUsers(value.filter(u => !initialEmails.has(u.email)))
+     setAttendees(
+-      value.map(
+-        u => new userAttendee({ cal_address: u.email, cn: u.displayName })
++      value.map(u => {
++        // Preserve existing attendee metadata (partstat, is_delegate_host, …)
++        // so list mutations don't wipe the crown toggle or other bits.
++        const existing = attendees.find(a => a.cal_address === u.email)
++        if (existing) return existing
++        return new userAttendee({ cal_address: u.email, cn: u.displayName })
++      })
++    )
++  }
++
++  const toggleDelegateHost = (email: string): void => {
++    setAttendees(
++      attendees.map(a =>
++        a.cal_address === email ? a.withDelegateHost(!a.is_delegate_host) : a
+       )
+     )
+   }
+ 
++  const attendeeByEmail = useMemo(
++    () => new Map(attendees.map(a => [a.cal_address, a])),
++    [attendees]
++  )
++
+   return (
+     <PeopleSearch
+       selectedUsers={selectedUsers}
+@@ -185,6 +207,18 @@ export const AttendeeSearch: React.FC<{
+             )
+           : undefined
+       }
++      getChipAction={(user): {
++        isDelegateHost: boolean
++        onToggle: () => void
++      } | undefined => {
++        if (!hasVideoConference) return undefined
++        const att = attendeeByEmail.get(user.email)
++        if (!att || att.cutype === 'RESOURCE') return undefined
++        return {
++          isDelegateHost: att.is_delegate_host,
++          onToggle: () => toggleDelegateHost(user.email)
++        }
++      }}
+       onChange={handleOnChange}
+       freeSolo
+       enableEmailAutocompleteAndCommit
+diff --git a/common/src/components/Attendees/PeopleSearch.tsx b/common/src/components/Attendees/PeopleSearch.tsx
+index 56e695c..15e31b1 100644
+--- a/common/src/components/Attendees/PeopleSearch.tsx
++++ b/common/src/components/Attendees/PeopleSearch.tsx
+@@ -53,6 +53,7 @@ export interface PeopleSearchProps {
+     listbox?: Partial<HTMLAttributes<HTMLUListElement>>
+   }
+   getChipIcon?: (user: User) => ReactElement
++  getChipAction?: AttendeeChipProps['getChipAction']
+   hideOptions?: boolean
+   showCurrentUser?: boolean
+   onSearchStateChange?: (state: SearchState) => void
+@@ -89,6 +90,7 @@ interface PeopleSearchValueRendererProps {
+   value: User[]
+   getItemProps: AttendeeChipProps['getItemProps']
+   getChipIcon?: (user: User) => ReactElement
++  getChipAction?: AttendeeChipProps['getChipAction']
+ }
+ 
+ const getOptionLabel = (option: User | string): string => {
+@@ -126,7 +128,8 @@ const resolveIsOpen = ({
+ const PeopleSearchValueRenderer: React.FC<PeopleSearchValueRendererProps> = ({
+   value,
+   getItemProps,
+-  getChipIcon
++  getChipIcon,
++  getChipAction
+ }) => (
+   <Box sx={{ display: 'flex', flexWrap: 'wrap' }}>
+     {value.map((option, index) => (
+@@ -136,6 +139,7 @@ const PeopleSearchValueRenderer: React.FC<PeopleSearchValueRendererProps> = ({
+         getItemProps={getItemProps}
+         index={index}
+         getChipIcon={getChipIcon}
++        getChipAction={getChipAction}
+       />
+     ))}
+   </Box>
+@@ -195,6 +199,7 @@ export const PeopleSearch: React.FC<PeopleSearchProps> = ({
+   customRenderInput,
+   customSlotProps,
+   getChipIcon,
++  getChipAction,
+   hideOptions,
+   showCurrentUser,
+   onSearchStateChange,
+@@ -309,6 +314,7 @@ export const PeopleSearch: React.FC<PeopleSearchProps> = ({
+             value={value as User[]}
+             getItemProps={getItemProps}
+             getChipIcon={getChipIcon}
++            getChipAction={getChipAction}
+           />
+         )}
+       />
+diff --git a/common/src/components/Event/EventFormFields.tsx b/common/src/components/Event/EventFormFields.tsx
+index f3ae915..da03238 100644
+--- a/common/src/components/Event/EventFormFields.tsx
++++ b/common/src/components/Event/EventFormFields.tsx
+@@ -217,6 +217,9 @@ const EventFormFields = forwardRef<EventFormHandle, EventFormFieldsProps>(
+             end={v.end}
+             placeholder={t('event.form.addGuestsPlaceholder')}
+             inputSlot={params => <TextField {...params} size={inputSize} />}
++            hasVideoConference={
++              !!(v.hasVideoConference && v.meetingLink)
++            }
+           />
+         </FieldWithLabel>
+ 
+diff --git a/common/src/components/Event/utils/eventUtils.tsx b/common/src/components/Event/utils/eventUtils.tsx
+index b079652..20ae9f0 100644
+--- a/common/src/components/Event/utils/eventUtils.tsx
++++ b/common/src/components/Event/utils/eventUtils.tsx
+@@ -13,6 +13,7 @@ import { formatDateToYYYYMMDDTHHMMSS } from '@common/utils/dateUtils'
+ import { Avatar, Badge, Box, Typography } from '@linagora/twake-mui'
+ import CancelIcon from '@mui/icons-material/Cancel'
+ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
++import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium'
+ import { AttendeePopover } from '@common/components/Attendees/AttendeePopover'
+ import { PartStat } from '@common/features/User/models/attendee'
+ 
+@@ -49,9 +50,36 @@ export const classIcon = (
+ }
+ 
+ function renderSimpleAttendeeBadge(a: userAttendee, key: string): JSX.Element {
++  const avatar = <Avatar {...stringAvatar(a?.cn || a?.cal_address)} />
+   return (
+     <AttendeePopover key={key} attendee={a}>
+-      <Avatar {...stringAvatar(a?.cn || a?.cal_address)} />
++      {a.is_delegate_host ? (
++        <Badge
++          overlap="circular"
++          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
++          badgeContent={
++            <Box
++              style={{
++                fontSize: 14,
++                lineHeight: 0,
++                backgroundColor: 'white',
++                borderRadius: '50%',
++                padding: '1px'
++              }}
++            >
++              <WorkspacePremiumIcon
++                fontSize="inherit"
++                sx={{ color: 'warning.main' }}
++                titleAccess="Delegate host"
++              />
++            </Box>
++          }
++        >
++          {avatar}
++        </Badge>
++      ) : (
++        avatar
++      )}
+     </AttendeePopover>
+   )
+ }
+@@ -116,15 +144,29 @@ function renderFullAttendeeBadge({
+       )}
+       <Box style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+         <AttendeePopover attendee={a}>
+-          <Typography variant="body2" noWrap>
+-            {displayName}
+-          </Typography>
++          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
++            <Typography variant="body2" noWrap>
++              {displayName}
++            </Typography>
++            {a.is_delegate_host && (
++              <WorkspacePremiumIcon
++                fontSize="small"
++                sx={{ color: 'warning.main' }}
++                titleAccess="Delegate host — will get admin on the Meet room"
++              />
++            )}
++          </Box>
+         </AttendeePopover>
+         {isOrganizer && (
+           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+             {t('event.organizer')}
+           </Typography>
+         )}
++        {a.is_delegate_host && !isOrganizer && (
++          <Typography variant="caption" sx={{ color: 'warning.main' }}>
++            Delegate host
++          </Typography>
++        )}
+         {caption && (
+           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+             {caption}
+diff --git a/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts b/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts
+index 9189a0a..16d7eab 100644
+--- a/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts
++++ b/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts
+@@ -23,7 +23,11 @@ export const updateAttendeesAfterTimeChange = (
+         att.cal_address,
+         markNeedsAction(att)
+       )
+-      return timeChanged ? markNeedsAction(existing) : existing
++      const base = timeChanged ? markNeedsAction(existing) : existing
++      // The form-side attendee carries UI-owned bits that the existing
++      // event attendee should not override (e.g. WS3 is_delegate_host,
++      // toggled via the crown). partstat/rsvp/role remain server-owned.
++      return base.withDelegateHost(att.is_delegate_host)
+     })
+ 
+     // Only append organizer entry if organizer exists
+diff --git a/common/src/features/Events/utils/makeVevent.ts b/common/src/features/Events/utils/makeVevent.ts
+index 8487612..ea55f14 100644
+--- a/common/src/features/Events/utils/makeVevent.ts
++++ b/common/src/features/Events/utils/makeVevent.ts
+@@ -77,6 +77,24 @@ export function makeVevent(
+     vevent[1].push(att.asJcal())
+   })
+ 
++  // WS3 host-delegation: emit X-TWAKE-DELEGATE-HOSTS with the emails of
++  // attendees flagged as delegate hosts. Only emit when the event has an
++  // active Meet URL — the side-service consumer would silently bail
++  // without one, but keeping the ICS clean is nicer for round-trip.
++  if (event.x_openpass_videoconference) {
++    const delegateEmails = event.attendee
++      .filter(att => att.is_delegate_host)
++      .map(att => att.cal_address.replace(/^mailto:/i, ''))
++    if (delegateEmails.length > 0) {
++      vevent[1].push([
++        'x-twake-delegate-hosts',
++        {},
++        'text',
++        delegateEmails.join(',')
++      ])
++    }
++  }
++
+   if (event.exdates && event.exdates.length > 0) {
+     event.exdates.forEach(ex => {
+       vevent[1].push([
+diff --git a/common/src/features/Events/utils/parseCalendarEvent.ts b/common/src/features/Events/utils/parseCalendarEvent.ts
+index 173fc0f..d1ce7fe 100644
+--- a/common/src/features/Events/utils/parseCalendarEvent.ts
++++ b/common/src/features/Events/utils/parseCalendarEvent.ts
+@@ -27,6 +27,7 @@ const KNOWN_PROPS = new Set([
+   'class',
+   'x-openpaas-videoconference',
+   'x-openpaas-booking-link',
++  'x-twake-delegate-hosts',
+   'summary',
+   'description',
+   'location',
+@@ -56,6 +57,10 @@ function safeString(value: VObjectValue): string {
+ interface PropertyContext {
+   recurrenceId?: string
+   duration?: string
++  // WS3 host-delegation: emails flagged as delegate hosts, captured from
++  // the top-level X-TWAKE-DELEGATE-HOSTS property. Applied to matching
++  // attendees after all properties are parsed.
++  delegateHostEmails?: Set<string>
+ }
+ 
+ function parseDateProperty(
+@@ -180,6 +185,16 @@ const PROPERTY_PARSERS: Record<
+   'x-openpaas-booking-link': (params, value, event) => {
+     event.bookingLinkPublicId = safeString(value)
+   },
++  'x-twake-delegate-hosts': (params, value, _event, context) => {
++    const raw = safeString(value)
++    if (!raw) return
++    context.delegateHostEmails = new Set(
++      raw
++        .split(',')
++        .map(e => e.trim().toLowerCase())
++        .filter(e => e.length > 0)
++    )
++  },
+   summary: (params, value, event) => {
+     event.title = safeString(value)
+   },
+@@ -368,6 +383,16 @@ export function parseCalendarEvent({
+ 
+   processEventUid(event, context.recurrenceId)
+ 
++  // WS3 host-delegation: apply the X-TWAKE-DELEGATE-HOSTS emails to the
++  // matching parsed attendees so the UI can hydrate the crown toggle.
++  if (context.delegateHostEmails && event.attendee) {
++    event.attendee = event.attendee.map(att =>
++      context.delegateHostEmails!.has(att.cal_address.toLowerCase())
++        ? att.withDelegateHost(true)
++        : att
++    )
++  }
++
+   const alarms = parseAlarms(valarms)
+   if (alarms?.hasAlarms()) {
+     event.alarms = alarms
+diff --git a/common/src/features/User/models/attendee.ts b/common/src/features/User/models/attendee.ts
+index 7e3bf58..ea19605 100644
+--- a/common/src/features/User/models/attendee.ts
++++ b/common/src/features/User/models/attendee.ts
+@@ -14,6 +14,7 @@ export interface UserAttendeeData {
+   cutype: CuType
+   rsvp: 'TRUE' | 'FALSE'
+   cn: string
++  is_delegate_host: boolean
+ }
+ 
+ export type UserAttendeeOptions = Partial<UserAttendeeData>
+@@ -25,6 +26,7 @@ export class userAttendee implements UserAttendeeData {
+   cutype: CuType
+   rsvp: 'TRUE' | 'FALSE'
+   cn: string
++  is_delegate_host: boolean
+ 
+   constructor({
+     cal_address,
+@@ -32,7 +34,8 @@ export class userAttendee implements UserAttendeeData {
+     role,
+     cutype,
+     rsvp,
+-    cn
++    cn,
++    is_delegate_host
+   }: UserAttendeeOptions = {}) {
+     this.cal_address = cal_address ?? ''
+     this.partstat = partstat ?? 'NEEDS-ACTION'
+@@ -40,6 +43,7 @@ export class userAttendee implements UserAttendeeData {
+     this.cutype = cutype ?? 'INDIVIDUAL'
+     this.rsvp = rsvp ?? 'FALSE'
+     this.cn = cn ?? ''
++    this.is_delegate_host = is_delegate_host ?? false
+   }
+ 
+   static fromOrganizer(organizer: userOrganiser | undefined): userAttendee {
+@@ -88,6 +92,10 @@ export class userAttendee implements UserAttendeeData {
+     return new userAttendee({ ...this, rsvp })
+   }
+ 
++  withDelegateHost(is_delegate_host: boolean): userAttendee {
++    return new userAttendee({ ...this, is_delegate_host })
++  }
++
+   asMailto(): string {
+     return `mailto:${this.cal_address.replace(/^mailto:/i, '')}`
+   }
