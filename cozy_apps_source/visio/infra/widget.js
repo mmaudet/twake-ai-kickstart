@@ -186,37 +186,44 @@
   }
 
   function fetchUpcomingMeetEvents(token) {
-    // 1) /api/user → { _id, ... }
+    // 1) /api/user → { _id }
     return apiGet('/api/user', token).then(function (user) {
       var uid = user && user._id;
       if (!uid) throw new Error('api: no user id');
-      // 2) /dav/calendars/<uid>.json?personal=true → { _embedded: { "dav:calendar": [ { _links, ... } ] } }
+      // 2) /dav/calendars/<uid>.json?personal=true → calendar home
       return apiGet('/dav/calendars/' + uid + '.json?personal=true', token).then(function (home) {
         var calendars = ((home && home._embedded && home._embedded['dav:calendar']) || []);
         if (!calendars.length) return [];
-        // 3) For each personal calendar, ask for events in the next N days.
-        //    side-service ships a query-events REST route on top of sabre's
-        //    CalDAV REPORT — GET the calendar collection with a time-range.
+        // 3) For each calendar collection, run a CalDAV REPORT calendar-query
+        //    with a VEVENT time-range filter — the standard sabre-dav / RFC 4791
+        //    way to fetch events in an interval. GET with `?start=&end=` doesn't
+        //    work; the server needs the XML filter body.
         var now = new Date();
         var end = new Date(now.getTime() + CFG.upcomingWindowDays * 86400e3);
-        var params = 'start=' + encodeURIComponent(now.toISOString())
-                   + '&end=' + encodeURIComponent(end.toISOString());
+        var reportBody = buildCalendarQuery(caldavTime(now), caldavTime(end));
         var fetches = calendars.map(function (cal) {
           var self = cal && cal._links && cal._links.self && cal._links.self.href;
           if (!self) return Promise.resolve([]);
-          // strip leading "/"
+          // Strip trailing `.json` (added by side-service's JSON view) so the
+          // REPORT hits the raw CalDAV collection. Also prepend /dav if the
+          // href is relative.
           var relPath = self.charAt(0) === '/' ? self : '/' + self;
-          return apiGet(relPath + '?' + params, token).catch(function () { return []; });
+          if (relPath.indexOf('/dav/') !== 0) relPath = '/dav' + relPath;
+          relPath = relPath.replace(/\.json$/, '');
+          return caldavReport(relPath, reportBody, token).catch(function (err) {
+            if (window.console && console.debug) console.debug('[visio-upcoming-meets] REPORT failed for', relPath, err && err.message);
+            return [];
+          });
         });
         return Promise.all(fetches).then(function (perCal) {
+          if (window.console && console.debug) {
+            console.debug('[visio-upcoming-meets] raw per-cal responses:', perCal);
+          }
           var all = [];
-          perCal.forEach(function (arr) {
-            if (arr && arr._embedded && arr._embedded['dav:item']) {
-              arr._embedded['dav:item'].forEach(function (ev) { all.push(ev); });
-            } else if (Array.isArray(arr)) {
-              arr.forEach(function (ev) { all.push(ev); });
-            }
-          });
+          perCal.forEach(function (arr) { if (Array.isArray(arr)) arr.forEach(function (e) { all.push(e); }); });
+          if (window.console && console.debug) {
+            console.debug('[visio-upcoming-meets] extracted events:', all.length, all);
+          }
           return all;
         });
       });
@@ -229,36 +236,90 @@
     });
   }
 
+  // CalDAV compact date format: 20260731T185300Z
+  function caldavTime(d) {
+    var s = d.toISOString();
+    return s.replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+  }
+
+  function buildCalendarQuery(startZ, endZ) {
+    return '<?xml version="1.0" encoding="utf-8" ?>' +
+      '<c:calendar-query xmlns:d="DAV:" xmlns:c="urn:ietf:params:xml:ns:caldav">' +
+      '<d:prop><d:getetag/><c:calendar-data/></d:prop>' +
+      '<c:filter><c:comp-filter name="VCALENDAR">' +
+      '<c:comp-filter name="VEVENT">' +
+      '<c:time-range start="' + startZ + '" end="' + endZ + '"/>' +
+      '</c:comp-filter></c:comp-filter></c:filter>' +
+      '</c:calendar-query>';
+  }
+
+  function caldavReport(path, body, token) {
+    return fetch(CFG.sideServiceBase + path, {
+      method: 'REPORT',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Depth': '1',
+      },
+      body: body,
+    }).then(function (r) {
+      if (r.status === 401) {
+        try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+        throw new Error('REPORT ' + path + ': 401 (cache cleared, will retry)');
+      }
+      if (!r.ok) throw new Error('REPORT ' + path + ': ' + r.status);
+      return r.text();
+    }).then(parseMultistatus);
+  }
+
+  function parseMultistatus(xml) {
+    // Response is a WebDAV multistatus XML: each <d:response> contains a
+    // <c:calendar-data> element with the raw ICS body of one event. Extract
+    // and return as [{ ics: "..." }, ...] so parseEvent can inspect them.
+    var doc = new DOMParser().parseFromString(xml, 'application/xml');
+    if (doc.getElementsByTagName('parsererror').length) return [];
+    // handle both ns-prefixed and unprefixed lookups
+    var calendarDataEls = doc.getElementsByTagNameNS('urn:ietf:params:xml:ns:caldav', 'calendar-data');
+    var out = [];
+    for (var i = 0; i < calendarDataEls.length; i++) {
+      var ics = calendarDataEls[i].textContent || '';
+      if (ics.trim()) out.push({ ics: ics });
+    }
+    return out;
+  }
+
   function parseEvent(raw) {
-    // raw is a sabre-JSON event: { data: <jCal>, etag, ... } or an already-decoded object.
+    // raw = { ics: "BEGIN:VCALENDAR\r\n...END:VCALENDAR" } from parseMultistatus.
+    // Meet URLs in the Twake stack live in the custom `X-OPENPAAS-VIDEOCONFERENCE`
+    // property (see twake-calendar-web: grep t.data["x-openpaas-videoconference"]).
     try {
-      var summary = '', dtstart = null, url = '', description = '';
-      var d = raw && raw.data;
-      if (Array.isArray(d) && d[0] === 'vcalendar') {
-        // jCal: [ "vcalendar", [props], [components] ]
-        var components = d[2] || [];
-        for (var i = 0; i < components.length; i++) {
-          var comp = components[i];
-          if (comp[0] !== 'vevent') continue;
-          var props = comp[1] || [];
-          for (var j = 0; j < props.length; j++) {
-            var p = props[j];
-            if (!p) continue;
-            if (p[0] === 'summary') summary = String(p[3] || '');
-            else if (p[0] === 'dtstart') dtstart = new Date(p[3] || 0);
-            else if (p[0] === 'url') url = String(p[3] || '');
-            else if (p[0] === 'description') description = String(p[3] || '');
-          }
-          break; // first vevent only
-        }
-      } else if (typeof raw === 'object') {
-        summary = raw.summary || raw.title || '';
-        dtstart = raw.start ? new Date(raw.start) : null;
-        url = raw.url || raw.location || '';
-        description = raw.description || '';
+      var ics = raw && raw.ics ? raw.ics : '';
+      if (!ics) return null;
+      // Unfold RFC 5545 line continuations (a line starting with space or tab
+      // continues the previous property) before extracting properties.
+      ics = ics.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
+      var lines = ics.split(/\r?\n/);
+      var inEvent = false;
+      var summary = '', dtstart = null, url = '', description = '', videoconf = '';
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        if (line === 'BEGIN:VEVENT') { inEvent = true; continue; }
+        if (line === 'END:VEVENT') break;
+        if (!inEvent) continue;
+        // property line: NAME[;params]:VALUE  — case-insensitive name
+        var colon = line.indexOf(':');
+        if (colon < 0) continue;
+        var head = line.substring(0, colon);
+        var value = line.substring(colon + 1);
+        var name = head.split(';')[0].toUpperCase();
+        if (name === 'SUMMARY') summary = unescapeICSText(value);
+        else if (name === 'DTSTART') dtstart = parseICSDate(value);
+        else if (name === 'URL') url = value;
+        else if (name === 'DESCRIPTION') description = unescapeICSText(value);
+        else if (name === 'X-OPENPAAS-VIDEOCONFERENCE') videoconf = value;
       }
       if (!dtstart) return null;
-      var haystack = url + '\n' + description;
+      var haystack = videoconf + '\n' + url + '\n' + description;
       var hasMeet = CFG.meetHostPattern.test(haystack);
       var meetUrl = null;
       if (hasMeet) {
@@ -266,6 +327,27 @@
         if (m) meetUrl = m[0];
       }
       return { summary: summary, start: dtstart, meetUrl: meetUrl, hasMeet: hasMeet };
+    } catch (_e) { return null; }
+  }
+
+  function unescapeICSText(s) {
+    return String(s || '').replace(/\\n/g, '\n').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+  }
+
+  function parseICSDate(v) {
+    // ICS dates: 20260801T070000 (floating), 20260801T050000Z (UTC),
+    // 20260801 (date-only, whole day). Normalize to Date.
+    try {
+      var s = String(v || '');
+      if (/^\d{8}$/.test(s)) {
+        // YYYYMMDD → all-day
+        return new Date(s.substring(0,4) + '-' + s.substring(4,6) + '-' + s.substring(6,8) + 'T00:00:00Z');
+      }
+      var m = s.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
+      if (m) {
+        return new Date(m[1] + '-' + m[2] + '-' + m[3] + 'T' + m[4] + ':' + m[5] + ':' + m[6] + (m[7] || ''));
+      }
+      return new Date(s);
     } catch (_e) { return null; }
   }
 
@@ -374,20 +456,30 @@
   // ============================================================
   // boot
   // ============================================================
-  function run() {
+  var runInProgress = false;
+  var lastResult = null;   // "success" | "fallback" | null
+  function run(opts) {
     // Do nothing on hosts that aren't our target (defensive when the
     // sub_filter is misconfigured somewhere).
     if (suffixIdx < 0) return;
-    if (document.getElementById('visio-upcoming-meets')) return;
+    if (runInProgress) return;
+    // Skip re-runs once we have a successful render (Cozy hydration
+    // pulses trigger multiple runs; don't reflow the widget). But DO
+    // re-run after a fallback so a fresh silent auth cycle can pick
+    // up a rotated audience / new LLNG session.
+    if (lastResult === 'success' && !(opts && opts.force)) return;
 
+    runInProgress = true;
     renderLoading();
     getAccessToken()
       .then(fetchUpcomingMeetEvents)
-      .then(renderEvents)
+      .then(function (events) { renderEvents(events); lastResult = 'success'; })
       .catch(function (err) {
         if (window.console && console.debug) console.debug('[visio-upcoming-meets] fallback:', err && err.message);
         renderFallback();
-      });
+        lastResult = 'fallback';
+      })
+      .then(function () { runInProgress = false; });
   }
 
   if (document.readyState === 'loading') {
