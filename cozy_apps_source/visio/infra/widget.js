@@ -172,6 +172,14 @@
     return fetch(CFG.sideServiceBase + path, {
       headers: { 'Authorization': 'Bearer ' + token, 'Accept': 'application/json' },
     }).then(function (r) {
+      if (r.status === 401) {
+        // Cached token is stale (rotated audience, LLNG session
+        // dropped, …). Drop it and let the next run() retry a
+        // fresh silent auth. Signal caller to fall back for this
+        // pass.
+        try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+        throw new Error('api ' + path + ': 401 (cache cleared, will retry)');
+      }
       if (!r.ok) throw new Error('api ' + path + ': ' + r.status);
       return r.json();
     });
