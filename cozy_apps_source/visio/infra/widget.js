@@ -662,14 +662,29 @@
 
   // React to SPA route changes on Meet (create/join a room mutates the
   // path via history.pushState with no reload — we need to hide/show).
+  //
+  // Also runs unconditionally every tick to catch cases where React
+  // re-mounts the widget's parent (carousel) on route change — the widget
+  // node can end up re-attached even after `run()` hid it, so we scrub
+  // any stray `#visio-upcoming-meets` when the current route isn't the
+  // landing page.
   var lastPath = window.location.pathname;
   window.setInterval(function () {
-    if (window.location.pathname !== lastPath) {
+    var pathChanged = window.location.pathname !== lastPath;
+    if (pathChanged) {
       lastPath = window.location.pathname;
       run();
       applyMeetCleanup();
     }
-  }, 500);
+    // Belt & braces: on non-supported routes, forcibly remove any widget
+    // node from the DOM every tick. Handles the case where a MutationObserver
+    // or React re-render re-attached it after `run()` hid it.
+    if (HOST_KIND === 'meet' && !isSupportedRoute()) {
+      document.querySelectorAll('#visio-upcoming-meets').forEach(function (el) {
+        el.parentNode && el.parentNode.removeChild(el);
+      });
+    }
+  }, 300);
 
   // ============================================================
   // WS2b — LaSuite Meet UI cleanup / rebrand
