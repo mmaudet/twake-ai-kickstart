@@ -800,30 +800,61 @@
       }
     });
 
-    // Restyle the primary/secondary meeting-action buttons by their label.
+    // Restyle the primary/secondary meeting-action buttons by their
+    // label. Also catches the buttons in the two "Create" dropdown
+    // items, the "Join meeting" modal submit, and the copy-link button
+    // in the "Your connection info" modal — LaSuite defaults them to
+    // navy blue, but our brand for these actions is Twake green.
     document.querySelectorAll('button, a[role="button"]').forEach(function (btn) {
       var t = (btn.textContent || '').trim().toLowerCase();
-      if (t === 'créer une réunion' || t === 'create a meeting') {
+      if (t === 'créer une réunion' || t === 'create a meeting'
+          || t === 'démarrer une réunion instantanée'
+          || t === 'start an instant meeting'
+          || t === 'créer une réunion pour une date ultérieure'
+          || t === 'create a meeting for a later date'
+          || t === 'rejoindre la réunion'
+          || t === 'join meeting'
+          || t === 'join the meeting') {
         btn.classList.add('vum-btn-primary');
       } else if (t === 'rejoindre une réunion' || t === 'join a meeting') {
         btn.classList.add('vum-btn-secondary');
       }
     });
+
+    // The copy-link "chip" in the "Vos informations de connexion" modal
+    // renders as a button whose text is the meet URL — match by hostname
+    // to keep it robust across locales.
+    document.querySelectorAll('button, [role="button"]').forEach(function (btn) {
+      var t = (btn.textContent || '').trim();
+      if (/^meet\.[a-z0-9.-]+\/[a-z0-9-]+/i.test(t) && t.length < 120) {
+        btn.classList.add('vum-btn-primary');
+      }
+    });
   }
 
   // React mounts asynchronously; observe body mutations and re-apply
-  // cleanup until the DOM settles.
+  // cleanup on any tree change. Runs for the page's lifetime because
+  // modals ("Rejoindre une réunion", "Vos informations de connexion")
+  // and dropdowns ("Démarrer une réunion instantanée") mount lazily —
+  // an early disconnect leaves those with LaSuite's default blue.
+  //
+  // Throttled to at most once per 400ms so a chatty React tree doesn't
+  // dominate the main thread.
   var cleanupObs = null;
+  var cleanupPending = false;
+  function scheduleCleanup() {
+    if (cleanupPending) return;
+    cleanupPending = true;
+    window.setTimeout(function () {
+      cleanupPending = false;
+      applyMeetCleanup();
+    }, 400);
+  }
   function startMeetCleanupObserver() {
     if (HOST_KIND !== 'meet' || cleanupObs) return;
     applyMeetCleanup();
-    cleanupObs = new MutationObserver(function () { applyMeetCleanup(); });
+    cleanupObs = new MutationObserver(scheduleCleanup);
     cleanupObs.observe(document.body, { childList: true, subtree: true });
-    // Stop observing after 30s — by then React has fully mounted and
-    // further re-renders will re-run applyMeetCleanup only on route change.
-    window.setTimeout(function () {
-      if (cleanupObs) { cleanupObs.disconnect(); cleanupObs = null; }
-    }, 30000);
   }
 
   if (document.readyState === 'loading') {
