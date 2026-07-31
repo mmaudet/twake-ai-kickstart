@@ -462,6 +462,12 @@ csp_allowlist:
   # img:    https://allowed.domain.com/
   # style:  https://allowed.domain.com/
   # font:   https://allowed.domain.com/
+  # Dev-only: 'unsafe-eval' + 'unsafe-inline' + blob: + unpkg required by the
+  # twakeagentic design mockup. Its DesignCode runtime uses `new Function(...)`
+  # to compile the Component, boots via an inline <script>, injects assets
+  # from blob: URLs, and fetches React/ReactDOM/Babel from https://unpkg.com.
+  # Applies to every app on this stack; do not port to a prod config.
+  script:  "'unsafe-eval' 'unsafe-inline' blob: https://unpkg.com"
   frame:   "https://linshare.${BASE_DOMAIN} https://mail.${BASE_DOMAIN} ${EXTRA_CSP_FRAME_DOMAINS}"
   connect: "${EXTRA_CSP_CONNECT_DOMAINS}"
 
