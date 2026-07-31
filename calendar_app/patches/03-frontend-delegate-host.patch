@@ -246,7 +246,7 @@ index f3ae915..da03238 100644
          </FieldWithLabel>
  
 diff --git a/common/src/components/Event/utils/eventUtils.tsx b/common/src/components/Event/utils/eventUtils.tsx
-index b079652..20ae9f0 100644
+index b079652..1468d00 100644
 --- a/common/src/components/Event/utils/eventUtils.tsx
 +++ b/common/src/components/Event/utils/eventUtils.tsx
 @@ -13,6 +13,7 @@ import { formatDateToYYYYMMDDTHHMMSS } from '@common/utils/dateUtils'
@@ -257,15 +257,21 @@ index b079652..20ae9f0 100644
  import { AttendeePopover } from '@common/components/Attendees/AttendeePopover'
  import { PartStat } from '@common/features/User/models/attendee'
  
-@@ -49,9 +50,36 @@ export const classIcon = (
+@@ -48,10 +49,41 @@ export const classIcon = (
+   }
  }
  
- function renderSimpleAttendeeBadge(a: userAttendee, key: string): JSX.Element {
+-function renderSimpleAttendeeBadge(a: userAttendee, key: string): JSX.Element {
++function renderSimpleAttendeeBadge(
++  a: userAttendee,
++  key: string,
++  showDelegateHost: boolean = false
++): JSX.Element {
 +  const avatar = <Avatar {...stringAvatar(a?.cn || a?.cal_address)} />
    return (
      <AttendeePopover key={key} attendee={a}>
 -      <Avatar {...stringAvatar(a?.cn || a?.cal_address)} />
-+      {a.is_delegate_host ? (
++      {a.is_delegate_host && showDelegateHost ? (
 +        <Badge
 +          overlap="circular"
 +          anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
@@ -295,7 +301,24 @@ index b079652..20ae9f0 100644
      </AttendeePopover>
    )
  }
-@@ -116,15 +144,29 @@ function renderFullAttendeeBadge({
+@@ -61,13 +93,15 @@ function renderFullAttendeeBadge({
+   key,
+   t,
+   isOrganizer,
+-  caption
++  caption,
++  showDelegateHost = false
+ }: {
+   a: userAttendee
+   key: string
+   t: (key: string) => string
+   isOrganizer?: boolean
+   caption?: string
++  showDelegateHost?: boolean
+ }): JSX.Element {
+   const icon = classIcon(a.partstat)
+   const displayName = a.cn || a.cal_address
+@@ -116,15 +150,29 @@ function renderFullAttendeeBadge({
        )}
        <Box style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
          <AttendeePopover attendee={a}>
@@ -306,7 +329,7 @@ index b079652..20ae9f0 100644
 +            <Typography variant="body2" noWrap>
 +              {displayName}
 +            </Typography>
-+            {a.is_delegate_host && (
++            {a.is_delegate_host && showDelegateHost && (
 +              <WorkspacePremiumIcon
 +                fontSize="small"
 +                sx={{ color: 'warning.main' }}
@@ -320,7 +343,7 @@ index b079652..20ae9f0 100644
              {t('event.organizer')}
            </Typography>
          )}
-+        {a.is_delegate_host && !isOrganizer && (
++        {a.is_delegate_host && showDelegateHost && !isOrganizer && (
 +          <Typography variant="caption" sx={{ color: 'warning.main' }}>
 +            Delegate host
 +          </Typography>
@@ -328,6 +351,120 @@ index b079652..20ae9f0 100644
          {caption && (
            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
              {caption}
+@@ -141,7 +189,8 @@ export function renderAttendeeBadge({
+   t,
+   isFull,
+   isOrganizer,
+-  caption
++  caption,
++  showDelegateHost = false
+ }: {
+   a: userAttendee
+   key: string
+@@ -149,13 +198,18 @@ export function renderAttendeeBadge({
+   isFull?: boolean
+   isOrganizer?: boolean
+   caption?: string
++  // WS3: only render the delegate-host crown when the event has an
++  // active Meet URL. Without it, the flag is meaningless (nothing to
++  // delegate) — hiding it avoids showing stale data on events whose
++  // videoconference was removed after delegates were set.
++  showDelegateHost?: boolean
+ }): JSX.Element {
+   if (!a) return <></>
+ 
+   if (!isFull) {
+-    return renderSimpleAttendeeBadge(a, key)
++    return renderSimpleAttendeeBadge(a, key, showDelegateHost)
+   }
+-  return renderFullAttendeeBadge({ a, key, t, isOrganizer, caption })
++  return renderFullAttendeeBadge({ a, key, t, isOrganizer, caption, showDelegateHost })
+ }
+ 
+ export function stringToColor(string: string): string {
+diff --git a/common/src/components/EventPreview/EventPreviewAttendees.tsx b/common/src/components/EventPreview/EventPreviewAttendees.tsx
+index 18e0fd8..ebef668 100644
+--- a/common/src/components/EventPreview/EventPreviewAttendees.tsx
++++ b/common/src/components/EventPreview/EventPreviewAttendees.tsx
+@@ -25,6 +25,7 @@ interface EventPreviewAttendeesProps {
+   end?: string
+   timezone?: string
+   eventUid?: string | null
++  hasVideoConference?: boolean
+ }
+ 
+ const ATTENDEE_DISPLAY_LIMIT = 3
+@@ -36,7 +37,8 @@ export function EventPreviewAttendees({
+   start,
+   end,
+   timezone,
+-  eventUid
++  eventUid,
++  hasVideoConference = false
+ }: EventPreviewAttendeesProps): JSX.Element {
+   const { t } = useI18n()
+   const theme = useTheme()
+@@ -142,14 +144,16 @@ export function EventPreviewAttendees({
+                     key: 'org',
+                     t,
+                     isFull: showAllAttendees,
+-                    isOrganizer: true
++                    isOrganizer: true,
++                    showDelegateHost: hasVideoConference
+                   })}
+                 {attendees.map((a, idx) =>
+                   renderAttendeeBadge({
+                     a,
+                     key: idx.toString(),
+                     t,
+-                    isFull: showAllAttendees
++                    isFull: showAllAttendees,
++                    showDelegateHost: hasVideoConference
+                   })
+                 )}
+               </AvatarGroup>
+@@ -192,7 +196,8 @@ export function EventPreviewAttendees({
+           key: 'org',
+           t,
+           isFull: showAllAttendees,
+-          isOrganizer: true
++          isOrganizer: true,
++          showDelegateHost: hasVideoConference
+         })}
+       {showAllAttendees &&
+         attendees.map((a, idx) =>
+@@ -202,7 +207,8 @@ export function EventPreviewAttendees({
+             t,
+             isFull: showAllAttendees,
+             isOrganizer: false,
+-            caption: busyCaption(a)
++            caption: busyCaption(a),
++            showDelegateHost: hasVideoConference
+           })
+         )}
+     </>
+diff --git a/common/src/components/EventPreview/EventPreviewDetails.tsx b/common/src/components/EventPreview/EventPreviewDetails.tsx
+index ce22518..5a60635 100644
+--- a/common/src/components/EventPreview/EventPreviewDetails.tsx
++++ b/common/src/components/EventPreview/EventPreviewDetails.tsx
+@@ -78,7 +78,8 @@ export const EventPreviewDetails: React.FC<EventPreviewDetailsProps> = ({
+           key: 'org',
+           t,
+           isFull: true,
+-          isOrganizer: true
++          isOrganizer: true,
++          showDelegateHost: !!event.x_openpass_videoconference
+         })}
+ 
+       {shouldShowAttendeesSection && (
+@@ -90,6 +91,7 @@ export const EventPreviewDetails: React.FC<EventPreviewDetailsProps> = ({
+           end={event.end}
+           timezone={event.timezone}
+           eventUid={event.uid}
++          hasVideoConference={!!event.x_openpass_videoconference}
+         />
+       )}
+ 
 diff --git a/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts b/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts
 index 9189a0a..16d7eab 100644
 --- a/common/src/features/Events/updateEventHelpers/updateAttendeesAfterTimeChange.ts
