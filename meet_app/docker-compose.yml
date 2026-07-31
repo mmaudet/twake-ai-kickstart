@@ -15,15 +15,7 @@ services:
       - "7881:7881/tcp"
       - "7881:7881/udp"
     labels:
-      # WebSocket signaling on a public subdomain so browsers can reach LiveKit
-      # through Traefik + the front reverse proxy. Media (RTC on 7881 udp+tcp)
-      # is left to the host `ports` binding above and must be reachable from
-      # the public IP LiveKit advertises via rtc.node_ip (see livekit.yaml.template).
-      - "traefik.enable=true"
-      - "traefik.http.routers.livekit.rule=Host(`livekit.${BASE_DOMAIN}`)"
-      - "traefik.http.routers.livekit.entrypoints=websecure"
-      - "traefik.http.routers.livekit.tls=true"
-      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+      - "traefik.enable=false"
     networks:
       - twake-network
     healthcheck:
@@ -33,8 +25,6 @@ services:
       retries: 5
 
   backend:
-    # Image is produced by ./build-meet.sh from the DINUM upstream tag pinned
-    # in ${MEET_VERSION} (.env). Local overlay (if any) lives in patches/*.patch.
     image: twake-meet-backend:${MEET_VERSION}
     container_name: visio-backend
     platform: linux/amd64
@@ -67,19 +57,18 @@ services:
 
       LIVEKIT_API_KEY: 9f3b2c7a8e6d4f1c
       LIVEKIT_API_SECRET: 6a9d0a3f5e4b8c2f9a7d6e3c1b4f8a2e
-      # This URL is both consumed by the backend server-side (server -> LiveKit)
-      # AND advertised to the browser via /api/v1.0/config for its WebSocket
-      # signaling connection. The `extra_hosts` entry below re-maps the public
-      # hostname to Traefik's internal bridge IP so the server hop stays local.
-      LIVEKIT_API_URL: wss://livekit.${BASE_DOMAIN}
-      LIVEKIT_FORCE_WSS_PROTOCOL: "True"
+      LIVEKIT_API_URL: http://localhost:7880
       LIVEKIT_VERIFY_SSL: False
       ALLOW_UNREGISTERED_ROOMS: false
       FRONTEND_SILENCE_LIVEKIT_DEBUG: False
       RESOURCE_DEFAULT_ACCESS_LEVEL: trusted
 
-      OIDC_RP_CLIENT_ID: visio
-      OIDC_RP_CLIENT_SECRET: visio-secret
+      OIDC_RP_CLIENT_ID: livekit-meet
+      # Public OIDC client with PKCE: no secret is exchanged.
+      # LemonLDAP-NG accepts token requests without client_secret when
+      # oidcRPMetaDataOptionsPublic=1 and code_challenge is provided.
+      OIDC_RP_CLIENT_SECRET: ""
+      OIDC_USE_PKCE: "True"
       OIDC_RP_SCOPES: "openid email profile"
 
       OIDC_OP_AUTHORIZATION_ENDPOINT: https://auth.${BASE_DOMAIN}/oauth2/authorize
@@ -99,10 +88,16 @@ services:
       RECORDING_ENABLE: "true"
       RECORDING_OUTPUT_FOLDER: "recordings"
       RECORDING_STORAGE_EVENT_ENABLE: "false"
+
+      # WS3 (host delegation): expose the External API + the Application
+      # feature so twake-calendar-side-service can obtain an app-JWT scoped
+      # to the meeting organiser and (via an added patch) grant ADMIN
+      # access to designated delegate attendees on the room.
+      EXTERNAL_API_ENABLED: "true"
+      APPLICATION_ENABLED: "true"
     restart: always
     extra_hosts:
       - "auth.${BASE_DOMAIN}:172.27.0.100"
-      - "livekit.${BASE_DOMAIN}:172.27.0.100"
     #ports:
     #- "8000:8000"
     labels:
