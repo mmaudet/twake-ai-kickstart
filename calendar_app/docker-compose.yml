@@ -8,7 +8,10 @@
 
 services:
   tcalendar-frontend:
-    image: linagora/twake-calendar-web:branch-master
+    # WS3 Patch C — patched calendar-ng SPA with the per-attendee
+    # "delegate host" crown toggle that emits X-TWAKE-DELEGATE-HOSTS.
+    # Falls back to :branch-master when TCALENDAR_WEB_IMAGE is unset.
+    image: ${TCALENDAR_WEB_IMAGE:-linagora/twake-calendar-web:branch-master}
     platform: linux/amd64
     container_name: twake_calendar_frontend
     restart: unless-stopped
@@ -25,13 +28,23 @@ services:
       - "traefik.http.services.newcalendar.loadbalancer.server.port=80"
 
   tcalendar-side-service:
-    image: linagora/twake-calendar-side-service:branch-master
+    # WS3 Patch B — patched image includes the Meet host-delegation hook.
+    # Build with ./patches/build-patched-image.sh (see patches/README-host-delegation.md).
+    # Fall back to :branch-master when MEET_APPLICATION_CLIENT_ID is unset.
+    image: ${TCALENDAR_SIDE_SERVICE_IMAGE:-linagora/twake-calendar-side-service:branch-master}
     container_name: tcalendar-side-service
     platform: linux/amd64
     hostname: tcalendar-side-service.${BASE_DOMAIN}
     restart: unless-stopped
     networks:
       - twake-network
+    environment:
+      # WS3 Patch B — Meet host delegation. Empty MEET_APPLICATION_CLIENT_ID
+      # keeps the hook disabled (no-op) even when running the patched image.
+      - meet.enabled=${MEET_ENABLED:-false}
+      - meet.application.client_id=${MEET_APPLICATION_CLIENT_ID:-}
+      - meet.application.client_secret=${MEET_APPLICATION_CLIENT_SECRET:-}
+      - meet.external.api.base.url=${MEET_EXTERNAL_API_BASE_URL:-http://visio-backend:8000}
     volumes:
       - ./conf-side-service:/root/conf
       - ../twake_auth/traefik/ssl/root-ca.crt:/usr/local/share/ca-certificates/root-ca.crt:ro
