@@ -70,43 +70,10 @@ services:
     depends_on:
       - sabre_dav
 
-  fe-calendar:
-    image: linagora/esn-frontend-calendar:govmu-02
-    hostname: calendar.${BASE_DOMAIN}
-    restart: unless-stopped
-    platform: linux/amd64
-    depends_on:
-      tcalendar-side-service:
-        condition: service_healthy
-    environment:
-      - OPENPAAS_URL=https://tcalendar-side-service.${BASE_DOMAIN}
-    volumes:
-      - ./frontend/calendar/openpaas.js:/usr/share/nginx/html/assets/env/openpaas.js
-    networks:
-      - twake-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.fecalendar.rule=Host(`calendar.${BASE_DOMAIN}`)"
-      - "traefik.http.services.fecalendar.loadbalancer.server.port=80"
-
-  fe-excal:
-    image: linagora/esn-frontend-calendar-public:main
-    hostname: excal.${BASE_DOMAIN}
-    restart: unless-stopped
-    platform: linux/amd64
-    depends_on:
-      tcalendar-side-service:
-        condition: service_healthy
-    environment:
-      - OPENPAAS_URL=https://tcalendar-side-service.${BASE_DOMAIN}
-    volumes:
-      - ./frontend/calendar/openpaas.js:/usr/share/nginx/html/assets/env/openpaas.js
-    networks:
-      - twake-network
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.feexcal.rule=Host(`excal.${BASE_DOMAIN}`)"
-      - "traefik.http.services.feexcal.loadbalancer.server.port=80"
+  # fe-calendar (linagora/esn-frontend-calendar) + fe-excal
+  # (linagora/esn-frontend-calendar-public) were removed on 2026-08-01 —
+  # calendar-ng (twake-calendar-web) supersedes both. Public booking is
+  # handled natively in calendar-ng.
 
   fe-contacts:
     image: linagora/esn-frontend-contacts:17-01-2025
