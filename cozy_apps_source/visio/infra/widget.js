@@ -45,8 +45,12 @@
   var HOST_KIND = null;
   var suffixIdx = hostname.indexOf('-visio.');
   if (suffixIdx >= 0) {
-    BASE_DOMAIN = hostname.substring(suffixIdx + '-visio.'.length);
-    HOST_KIND = 'cozy-visio';
+    // The Cozy Visio shell (<user>-visio.<BASE>) iframes meet.<BASE>.
+    // We want the widget to live INSIDE the meet page — where the Cozy
+    // shell already loads it via the same sub_filter overlay — so on
+    // the outer shell itself we render nothing to avoid a duplicate
+    // above the iframe.
+    return;
   } else if (hostname.indexOf('meet.') === 0) {
     BASE_DOMAIN = hostname.substring('meet.'.length);
     HOST_KIND = 'meet';
@@ -376,9 +380,23 @@
     st.textContent = [
       '#visio-upcoming-meets{',
       '  margin:24px auto;max-width:720px;padding:18px 20px;',
-      '  background:linear-gradient(135deg,#FF7B24 0%,#FFA92E 100%);color:#fff;',
+      '  background:linear-gradient(135deg,#2FB56B 0%,#28A05F 100%);color:#fff;',
       '  border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);',
       '  font-family:system-ui,-apple-system,sans-serif;',
+      '}',
+      // slot-right variant: takes the full width of the right-column
+      // carousel slot on the Meet landing page. box-sizing so padding
+      // stays inside the column width. margin:0 removes the auto-center
+      // gutter used in the full-width top-of-body fallback.
+      '#visio-upcoming-meets.vum-slot-right{',
+      '  margin:0;max-width:none;width:100%;box-sizing:border-box;',
+      '  padding:18px 20px;',
+      '}',
+      // Narrow viewports (< 720px): tighten the padding a touch so the
+      // event rows keep breathing room but the widget doesn't overflow.
+      '@media (max-width: 720px){',
+      '  #visio-upcoming-meets.vum-slot-right{padding:14px 14px}',
+      '  #visio-upcoming-meets li{grid-template-columns:auto 1fr auto;gap:8px}',
       '}',
       '#visio-upcoming-meets h3{margin:0 0 12px;font-size:1.05em;font-weight:600;letter-spacing:.02em;text-transform:uppercase;opacity:.95}',
       '#visio-upcoming-meets ul{list-style:none;padding:0;margin:0 0 12px;display:flex;flex-direction:column;gap:6px}',
@@ -390,7 +408,7 @@
       '#visio-upcoming-meets .vum-title{font-weight:600;line-height:1.2}',
       '#visio-upcoming-meets .vum-status{display:block;font-size:.78em;opacity:.85;margin-top:2px;font-weight:400}',
       '#visio-upcoming-meets a.vum-join{',
-      '  padding:6px 12px;background:#fff;color:#FF7B24;text-decoration:none;',
+      '  padding:6px 12px;background:#fff;color:#2FB56B;text-decoration:none;',
       '  border-radius:6px;font-size:.85em;font-weight:600;',
       '}',
       '#visio-upcoming-meets a.vum-agenda{',
@@ -409,11 +427,30 @@
 
   function ensureContainer() {
     ensureStyles();
-    var app = document.getElementById('app') || document.body;
     var existing = document.getElementById('visio-upcoming-meets');
     if (existing) return existing;
     var wrap = document.createElement('div');
     wrap.id = 'visio-upcoming-meets';
+
+    // On Meet: try to slot the widget into the right column of the Home
+    // component, where the carousel illustration used to live. That way
+    // the widget sits *next to* "Visioconférences simples et sécurisées"
+    // instead of floating full-width at the top.
+    if (HOST_KIND === 'meet') {
+      var carousel = document.querySelector('[role="region"][aria-roledescription="carousel"]');
+      var slot = carousel && carousel.parentNode;
+      if (slot) {
+        // Replace the carousel wrapper contents in-place — same layout
+        // cell, no CSS Grid reshuffle needed.
+        slot.insertBefore(wrap, carousel);
+        wrap.classList.add('vum-slot-right'); // CSS constrains the width to fit the column
+        return wrap;
+      }
+    }
+
+    // Fallback (Cozy Visio path or Meet before the carousel mounts):
+    // insert at top of body.
+    var app = document.getElementById('app') || document.body;
     app.insertBefore(wrap, app.firstChild);
     return wrap;
   }
@@ -630,6 +667,153 @@
     if (window.location.pathname !== lastPath) {
       lastPath = window.location.pathname;
       run();
+      applyMeetCleanup();
     }
   }, 500);
+
+  // ============================================================
+  // WS2b — LaSuite Meet UI cleanup / rebrand
+  // ============================================================
+  // Runs only on `meet.<BASE>` and only on the landing route. Hides the
+  // upstream marketing chrome (LaSuite logo header, user email top-right,
+  // carousel illustration + "Passez à la simplicité" pitch) and restyles
+  // the primary action buttons ("Créer / Rejoindre une réunion") to a
+  // Twake-orange colour so the page matches the rest of the workspace.
+  //
+  // React renders after we load, so we combine:
+  //   - a CSS block that hides the ARIA-stable carousel outright
+  //   - a MutationObserver that hides the header/user-menu by text
+  //     content and re-applies button styles once React mounts them.
+
+  // Move the widget container into the Home component's right column
+  // slot (where the carousel used to render). Called every time the
+  // MutationObserver fires until the widget is in place.
+  function relocateWidgetIntoCarouselSlot() {
+    if (HOST_KIND !== 'meet') return;
+    var w = document.getElementById('visio-upcoming-meets');
+    if (!w) return;
+    var carousel = document.querySelector('[role="region"][aria-roledescription="carousel"]');
+    if (!carousel) return;
+    var slot = carousel.parentNode;
+    if (!slot) return;
+    if (w.parentNode === slot) return; // already there
+    slot.insertBefore(w, carousel);
+    w.classList.add('vum-slot-right');
+  }
+
+  function ensureMeetCleanupStyles() {
+    if (document.getElementById('vum-meet-cleanup-styles')) return;
+    var st = document.createElement('style');
+    st.id = 'vum-meet-cleanup-styles';
+    st.textContent = [
+      // 1. Hide the intro-slider illustration + Passez-à-la-simplicité pitch.
+      //    NOTE: the widget insertBefore's itself just before this carousel
+      //    element (see ensureContainer), so the widget occupies the same
+      //    grid slot. We hide the carousel (not its parent slot) to keep
+      //    the Home layout intact.
+      '[role="region"][aria-roledescription="carousel"]{display:none !important}',
+      // 2. Hide sibling asset images: intro-slider PNGs (defensive — some
+      //    Meet builds render the illustration outside the ARIA region).
+      'img[src*="/intro-slider/"]{display:none !important}',
+      // 3. Hide the LaSuite Meet brand logo. In the Meet frontend the
+      //    "logo" is an <img alt="LaSuite Meet"> — attribute selector,
+      //    not text, is the reliable hook.
+      'img[alt="LaSuite Meet"]{display:none !important}',
+      'img[src$="/logo.svg"][alt*="LaSuite" i]{display:none !important}',
+      '.Header-logo{display:none !important}',   // the Panda-generated class Meet still exposes
+      // 4. Mark elements our MutationObserver decides to hide so future
+      //    React re-renders keep them hidden without touching the DOM.
+      '.vum-hide{display:none !important}',
+      // 4. Restyle the primary "Créer une réunion" button + secondary
+      //    "Rejoindre une réunion" to Twake colours.
+      '.vum-btn-primary{background:#2FB56B !important;border-color:#2FB56B !important;color:#fff !important}',
+      '.vum-btn-primary:hover{background:#22995A !important;border-color:#22995A !important}',
+      '.vum-btn-secondary{background:#fff !important;border:2px solid #2FB56B !important;color:#2FB56B !important}',
+      '.vum-btn-secondary:hover{background:#E8F7EF !important}',
+    ].join('');
+    document.head.appendChild(st);
+  }
+
+  // Case-insensitive substring match on visible text of a node.
+  function textMatches(node, needle) {
+    var t = (node.textContent || '').trim();
+    return t.length < 200 && t.toLowerCase().indexOf(needle.toLowerCase()) >= 0;
+  }
+
+  function applyMeetCleanup() {
+    if (HOST_KIND !== 'meet') return;
+    if (!isSupportedRoute()) return;
+    ensureMeetCleanupStyles();
+
+    // Move the widget from top-of-body (initial fallback slot) into the
+    // right-column carousel slot as soon as React has mounted it.
+    relocateWidgetIntoCarouselSlot();
+
+    // Hide the standalone "LaSuite Meet" brand block. The Home component
+    // renders it as a link/div near the top of the hero column, with the
+    // SVG logo + text as siblings — no single leaf holds "LaSuite Meet"
+    // as its whole textContent. Match by:
+    //   - any <a>/<div> whose text starts with "LaSuite" and stays short
+    //   - any leaf whose exact text is "LaSuite Meet"
+    document.querySelectorAll('a, [role="link"], div, header, [role="banner"]').forEach(function (el) {
+      var t = (el.textContent || '').trim();
+      if (t.length > 0 && t.length < 30 && /^LaSuite(\s|$)/i.test(t)) {
+        el.classList.add('vum-hide');
+      }
+    });
+    // Defensive: leaf-node exact match, walks up to the wrapper. Catches
+    // builds that use different wrapping.
+    document.querySelectorAll('span, a, div, p').forEach(function (el) {
+      if (el.children.length) return;
+      var t = (el.textContent || '').trim();
+      if (t === 'LaSuite Meet' || t === 'LaSuite') {
+        var wrap = el.closest('a,button,[role="button"],div');
+        (wrap || el).classList.add('vum-hide');
+      }
+    });
+
+    // Hide the user email in the top-right (contains "@") and the settings
+    // gear next to it. The gear is typically an <svg> or icon <button>
+    // with an accessible name matching /paramètres|settings|préférences/i.
+    document.querySelectorAll('button, [role="button"], a[role="button"]').forEach(function (btn) {
+      var t = (btn.textContent || '').trim();
+      var label = btn.getAttribute('aria-label') || '';
+      if (t.length > 3 && t.length < 80 && t.indexOf('@') > 0 && /[a-z]/i.test(t)) {
+        btn.classList.add('vum-hide');
+      } else if (/param[eè]tres|settings|pr[eé]f[eé]rences|r[eé]glages/i.test(label)) {
+        btn.classList.add('vum-hide');
+      }
+    });
+
+    // Restyle the primary/secondary meeting-action buttons by their label.
+    document.querySelectorAll('button, a[role="button"]').forEach(function (btn) {
+      var t = (btn.textContent || '').trim().toLowerCase();
+      if (t === 'créer une réunion' || t === 'create a meeting') {
+        btn.classList.add('vum-btn-primary');
+      } else if (t === 'rejoindre une réunion' || t === 'join a meeting') {
+        btn.classList.add('vum-btn-secondary');
+      }
+    });
+  }
+
+  // React mounts asynchronously; observe body mutations and re-apply
+  // cleanup until the DOM settles.
+  var cleanupObs = null;
+  function startMeetCleanupObserver() {
+    if (HOST_KIND !== 'meet' || cleanupObs) return;
+    applyMeetCleanup();
+    cleanupObs = new MutationObserver(function () { applyMeetCleanup(); });
+    cleanupObs.observe(document.body, { childList: true, subtree: true });
+    // Stop observing after 30s — by then React has fully mounted and
+    // further re-renders will re-run applyMeetCleanup only on route change.
+    window.setTimeout(function () {
+      if (cleanupObs) { cleanupObs.disconnect(); cleanupObs = null; }
+    }, 30000);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', startMeetCleanupObserver);
+  } else {
+    startMeetCleanupObserver();
+  }
 })();
