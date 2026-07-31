@@ -62,6 +62,78 @@
   CFG.calendarUiBase = 'https://calendar-ng.' + BASE_DOMAIN + '/';
   CFG.meetHostPattern = new RegExp('meet\\.' + BASE_DOMAIN.replace(/\./g, '\\.'), 'i');
 
+  // ============================================================
+  // i18n — Cozy convention: nested JSON namespaces, %{name}
+  // interpolation, English as source of truth with locale fallback.
+  // Locale is detected from navigator.language (browser preference);
+  // unknown locales fall back to English.
+  // ============================================================
+  var LOCALES = {
+    en: {
+      widget: {
+        title: 'Your upcoming video meetings',
+        loading: 'Loading…',
+        emptyState: 'No Meet event in the next 24 hours.',
+        untitledEvent: '(untitled)',
+        joinButton: 'Join',
+        joinTooltip: 'Join the video meeting',
+        detailsTooltip: 'View details in your calendar',
+        openAgenda: 'Open my calendar',
+        statusLive: 'live',
+        statusDone: 'ended',
+        countdownIn: 'in %{time}',
+        dayToday: 'today',
+        dayTomorrow: 'tomorrow',
+        fallback: 'Find your upcoming meetings with a Meet link in your calendar.'
+      }
+    },
+    fr: {
+      widget: {
+        title: 'Vos prochaines visio conférences',
+        loading: 'Chargement…',
+        emptyState: 'Aucun rendez-vous Meet dans les 24 prochaines heures.',
+        untitledEvent: '(sans titre)',
+        joinButton: 'Rejoindre',
+        joinTooltip: 'Rejoindre la visioconférence',
+        detailsTooltip: 'Voir le détail dans l\'agenda',
+        openAgenda: 'Ouvrir mon agenda',
+        statusLive: 'en cours',
+        statusDone: 'terminé',
+        countdownIn: 'dans %{time}',
+        dayToday: "aujourd'hui",
+        dayTomorrow: 'demain',
+        fallback: 'Retrouvez vos prochains rendez-vous avec un lien Meet dans votre agenda.'
+      }
+    }
+  };
+
+  var LOCALE = (function () {
+    var pref = (navigator.language || 'en').toLowerCase().split('-')[0];
+    return LOCALES[pref] ? pref : 'en';
+  })();
+
+  function t(key, params) {
+    var parts = key.split('.');
+    var pack = LOCALES[LOCALE];
+    var val;
+    for (var attempts = 0; attempts < 2; attempts++) {
+      val = pack;
+      for (var i = 0; i < parts.length; i++) {
+        val = val && val[parts[i]];
+        if (val == null) break;
+      }
+      if (val != null) break;
+      pack = LOCALES.en; // fallback pass
+    }
+    if (val == null) return key;
+    if (params) {
+      val = val.replace(/%\{(\w+)\}/g, function (_, name) {
+        return params[name] != null ? params[name] : '%{' + name + '}';
+      });
+    }
+    return val;
+  }
+
   function isSupportedRoute() {
     // On Meet, only overlay the landing page; the SPA rewrites path to a
     // room slug once you create/join a meeting.
@@ -470,12 +542,20 @@
 
   function renderLoading() {
     var wrap = ensureContainer();
-    wrap.innerHTML = '<h3>Prochains RDV Meet</h3><p style="margin:0;opacity:.9">Chargement…</p>';
+    var titleHtml = '<h3>' + escapeHtml(t('widget.title')) + '</h3>';
+    var loadingHtml = '<p style="margin:0;opacity:.9">' + escapeHtml(t('widget.loading')) + '</p>';
+    wrap.innerHTML = titleHtml + loadingHtml;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
   function fmtHm(dt) {
     try {
-      return dt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+      return dt.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
     } catch (_e) { return dt.toTimeString().substring(0, 5); }
   }
 
@@ -484,10 +564,10 @@
     var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
     var eventDay = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate()).getTime();
     var dayDiff = Math.round((eventDay - startOfToday) / 86400000);
-    if (dayDiff === 0) return "aujourd'hui";
-    if (dayDiff === 1) return 'demain';
+    if (dayDiff === 0) return t('widget.dayToday');
+    if (dayDiff === 1) return t('widget.dayTomorrow');
     try {
-      return dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+      return dt.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' });
     } catch (_e) { return dt.toDateString(); }
   }
 
@@ -498,8 +578,8 @@
     var now = Date.now();
     var start = event.start.getTime();
     var end = event.end.getTime();
-    if (now >= start && now < end) return { kind: 'live', label: 'en cours' };
-    if (now >= end) return { kind: 'done', label: 'terminé' };
+    if (now >= start && now < end) return { kind: 'live', label: t('widget.statusLive') };
+    if (now >= end) return { kind: 'done', label: t('widget.statusDone') };
     var msTo = start - now;
     var totalSec = Math.max(0, Math.floor(msTo / 1000));
     var h = Math.floor(totalSec / 3600);
@@ -509,7 +589,7 @@
     if (h > 0) parts.push(h + 'h');
     if (h > 0 || m > 0) parts.push((h > 0 ? String(m).padStart(2, '0') : m) + 'm');
     parts.push((m > 0 || h > 0 ? String(s).padStart(2, '0') : s) + 's');
-    var label = 'dans ' + parts.join(' ');
+    var label = t('widget.countdownIn', { time: parts.join(' ') });
     // beyond today → also mention the day
     var eventDay = new Date(event.start.getFullYear(), event.start.getMonth(), event.start.getDate()).getTime();
     var startOfToday = new Date().setHours(0, 0, 0, 0);
@@ -521,12 +601,12 @@
     var wrap = ensureContainer();
     wrap.innerHTML = '';
     var h = document.createElement('h3');
-    h.textContent = 'Prochains RDV Meet';
+    h.textContent = t('widget.title');
     wrap.appendChild(h);
 
     if (!events.length) {
       var p = document.createElement('p');
-      p.textContent = 'Aucun rendez-vous Meet dans les 24 prochaines heures.';
+      p.textContent = t('widget.emptyState');
       p.style.cssText = 'margin:0 0 12px;opacity:.9;font-size:.95em';
       wrap.appendChild(p);
     } else {
@@ -545,7 +625,7 @@
         var mid = document.createElement('div');
         var title = document.createElement('div');
         title.className = 'vum-title';
-        title.textContent = e.summary || '(sans titre)';
+        title.textContent = e.summary || t('widget.untitledEvent');
         var status = document.createElement('span');
         status.className = 'vum-status';
         mid.appendChild(title); mid.appendChild(status);
@@ -561,8 +641,8 @@
           var btn = document.createElement('a');
           btn.className = 'vum-join';
           btn.href = e.meetUrl; btn.target = '_blank'; btn.rel = 'noopener';
-          btn.innerHTML = VIDEO_ICON_SVG + '<span>Rejoindre</span>';
-          btn.title = 'Rejoindre la visioconférence';
+          btn.innerHTML = VIDEO_ICON_SVG + '<span>' + escapeHtml(t('widget.joinButton')) + '</span>';
+          btn.title = t('widget.joinTooltip');
           actions.appendChild(btn);
         }
         // Deep-link into calendar-ng's built-in /events/:uid handler,
@@ -574,8 +654,8 @@
           details.className = 'vum-details';
           details.href = CFG.calendarUiBase + 'events/' + encodeURIComponent(e.uid);
           details.target = '_blank'; details.rel = 'noopener';
-          details.title = 'Voir le détail dans l\'agenda';
-          details.setAttribute('aria-label', 'Voir le détail dans l\'agenda');
+          details.title = t('widget.detailsTooltip');
+          details.setAttribute('aria-label', t('widget.detailsTooltip'));
           details.innerHTML = CAL_ICON_SVG;
           actions.appendChild(details);
         }
@@ -588,7 +668,7 @@
     var link = document.createElement('a');
     link.className = 'vum-agenda';
     link.href = CFG.calendarUiBase; link.target = '_blank'; link.rel = 'noopener';
-    link.textContent = 'Ouvrir mon agenda';
+    link.textContent = t('widget.openAgenda');
     wrap.appendChild(link);
 
     tickStatuses();
@@ -623,7 +703,7 @@
     var ul = wrap.querySelector('ul');
     if (ul && !ul.querySelector('li')) {
       var p = document.createElement('p');
-      p.textContent = 'Aucun rendez-vous Meet dans les 24 prochaines heures.';
+      p.textContent = t('widget.emptyState');
       p.style.cssText = 'margin:0 0 12px;opacity:.9;font-size:.95em';
       ul.parentNode.replaceChild(p, ul);
     }
@@ -633,14 +713,14 @@
     var wrap = ensureContainer();
     wrap.innerHTML = '';
     var h = document.createElement('h3');
-    h.textContent = 'Prochains RDV Meet';
+    h.textContent = t('widget.title');
     var p = document.createElement('p');
-    p.textContent = 'Retrouvez vos prochains rendez-vous avec un lien Meet dans votre agenda.';
+    p.textContent = t('widget.fallback');
     p.style.cssText = 'margin:0 0 12px;opacity:.9;font-size:.95em';
     var link = document.createElement('a');
     link.className = 'vum-agenda';
     link.href = CFG.calendarUiBase; link.target = '_blank'; link.rel = 'noopener';
-    link.textContent = 'Ouvrir mon agenda';
+    link.textContent = t('widget.openAgenda');
     wrap.appendChild(h); wrap.appendChild(p); wrap.appendChild(link);
   }
 
