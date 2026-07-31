@@ -25,11 +25,17 @@ INSTANCES = [
 BASE_DOMAIN_LITERAL = "twake-dev.maudet.cloud"  # kept explicit — matches the domain the visio hosts run on today
 
 SILENT_CB_PATH = "/oauth-silent-callback"
+# Silent-OIDC redirect URIs: per-Cozy-Visio subdomain + the shared LaSuite
+# Meet host. OAuth 2.0 requires exact match, so both host families must be
+# enumerated. Re-run this script when adding new Cozy users; the meet host
+# entry is stable across users.
 REDIRECT_URIS = " ".join(
-    f"https://{u}-visio.{BASE_DOMAIN_LITERAL}{SILENT_CB_PATH}" for u in INSTANCES
+    [f"https://{u}-visio.{BASE_DOMAIN_LITERAL}{SILENT_CB_PATH}" for u in INSTANCES]
+    + [f"https://meet.{BASE_DOMAIN_LITERAL}{SILENT_CB_PATH}"]
 )
 POST_LOGOUT_URIS = " ".join(
-    f"https://{u}-visio.{BASE_DOMAIN_LITERAL}/" for u in INSTANCES
+    [f"https://{u}-visio.{BASE_DOMAIN_LITERAL}/" for u in INSTANCES]
+    + [f"https://meet.{BASE_DOMAIN_LITERAL}/"]
 )
 
 CLIENT_ALIAS = "visio-widget"

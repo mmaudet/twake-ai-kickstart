@@ -35,14 +35,38 @@
     refetchIntervalMs: 60 * 1000, // refetch events every N ms — pick up newly-created events within a minute
   };
 
+  // Two supported hosts:
+  //   - <user>-visio.<BASE_DOMAIN>   (Cozy Visio shell) — always render
+  //   - meet.<BASE_DOMAIN>           (LaSuite Meet)     — only render on the
+  //                                                       landing route "/"
+  // (the Meet SPA renders room UIs on other paths — don't overlay them).
   var hostname = window.location.hostname;
+  var BASE_DOMAIN = null;
+  var HOST_KIND = null;
   var suffixIdx = hostname.indexOf('-visio.');
-  if (suffixIdx < 0) return;   // safety: not on a *-visio host
-  var BASE_DOMAIN = hostname.substring(suffixIdx + '-visio.'.length);
+  if (suffixIdx >= 0) {
+    BASE_DOMAIN = hostname.substring(suffixIdx + '-visio.'.length);
+    HOST_KIND = 'cozy-visio';
+  } else if (hostname.indexOf('meet.') === 0) {
+    BASE_DOMAIN = hostname.substring('meet.'.length);
+    HOST_KIND = 'meet';
+  } else {
+    return; // safety: not on a supported host, do nothing
+  }
   CFG.llngIssuer = 'https://auth.' + BASE_DOMAIN;
   CFG.sideServiceBase = 'https://tcalendar-side-service.' + BASE_DOMAIN;
   CFG.calendarUiBase = 'https://calendar-ng.' + BASE_DOMAIN + '/';
   CFG.meetHostPattern = new RegExp('meet\\.' + BASE_DOMAIN.replace(/\./g, '\\.'), 'i');
+
+  function isSupportedRoute() {
+    // On Meet, only overlay the landing page; the SPA rewrites path to a
+    // room slug once you create/join a meeting.
+    if (HOST_KIND === 'meet') {
+      var p = window.location.pathname || '/';
+      return p === '/' || p === '' || p === '/index.html';
+    }
+    return true;
+  }
 
   var STORAGE_KEY = 'visio-widget-oidc';
 
@@ -557,7 +581,16 @@
   var refetchTimer = null;
 
   function run(opts) {
-    if (suffixIdx < 0) return;
+    if (!BASE_DOMAIN) return;
+    if (!isSupportedRoute()) {
+      // If we already have a container from a previous route, hide it.
+      var w = document.getElementById('visio-upcoming-meets');
+      if (w) w.style.display = 'none';
+      return;
+    }
+    // Reveal container if we hid it on a room route.
+    var w2 = document.getElementById('visio-upcoming-meets');
+    if (w2) w2.style.display = '';
     if (runInProgress) return;
     if (lastResult === 'success' && !(opts && opts.force)) return;
 
@@ -589,4 +622,14 @@
   }
   window.setTimeout(run, 500);
   window.setTimeout(run, 2000);
+
+  // React to SPA route changes on Meet (create/join a room mutates the
+  // path via history.pushState with no reload — we need to hide/show).
+  var lastPath = window.location.pathname;
+  window.setInterval(function () {
+    if (window.location.pathname !== lastPath) {
+      lastPath = window.location.pathname;
+      run();
+    }
+  }, 500);
 })();

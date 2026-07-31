@@ -49,10 +49,16 @@ END = "# END visio-inject"
 # empty for anything else. Lives in the http context (conf.d/).
 MAP_CONF = f"""{BEGIN}
 # Managed by cozy_apps_source/visio/infra/hermes-nginx-patch.py
-# Injects widget.js only when Host matches <user>-visio.<BASE_DOMAIN>.
+# Injects widget.js on:
+#   - <user>-visio.<BASE_DOMAIN>          (Cozy Visio shell app home)
+#   - meet.<BASE_DOMAIN>                  (LaSuite Meet landing page)
+# The widget itself gates on window.location.pathname on the Meet host
+# to stay off room pages (`/abc123`).
 map $host $visio_inject {{
     default "";
     ~^[^.]+-visio\\.twake-dev\\.maudet\\.cloud$
+        '<script src="{WIDGET_URL_PATH}" defer></script>';
+    meet.twake-dev.maudet.cloud
         '<script src="{WIDGET_URL_PATH}" defer></script>';
 }}
 {END}
