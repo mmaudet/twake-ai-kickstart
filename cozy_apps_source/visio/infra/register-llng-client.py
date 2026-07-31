@@ -39,6 +39,7 @@ EXPORTED_VARS = {"email": "mail", "name": "cn", "preferred_username": "uid", "us
 def build_client_entry():
     return {
         "oidcRPMetaDataOptionsAccessTokenClaims": 1,
+        "oidcRPMetaDataOptionsAdditionalAudiences": "openpaas",  # tcalendar-side-service expects aud=openpaas
         "oidcRPMetaDataOptionsAccessTokenJWT": 1,
         "oidcRPMetaDataOptionsAccessTokenSignAlg": "RS256",
         "oidcRPMetaDataOptionsAllowClientCredentialsGrant": 0,
