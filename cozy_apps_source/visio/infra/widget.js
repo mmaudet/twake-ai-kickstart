@@ -302,7 +302,7 @@
       ics = ics.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
       var lines = ics.split(/\r?\n/);
       var inEvent = false;
-      var summary = '', dtstart = null, dtend = null, url = '', description = '', videoconf = '';
+      var summary = '', dtstart = null, dtend = null, url = '', description = '', videoconf = '', uid = '';
       var duration = null;
       for (var i = 0; i < lines.length; i++) {
         var line = lines[i];
@@ -315,6 +315,7 @@
         var value = line.substring(colon + 1);
         var name = head.split(';')[0].toUpperCase();
         if (name === 'SUMMARY') summary = unescapeICSText(value);
+        else if (name === 'UID') uid = value;
         else if (name === 'DTSTART') dtstart = parseICSDate(value);
         else if (name === 'DTEND') dtend = parseICSDate(value);
         else if (name === 'DURATION') duration = parseICSDuration(value);
@@ -335,7 +336,7 @@
         var m = haystack.match(new RegExp('https?://[^\\s"<]*meet\\.' + BASE_DOMAIN.replace(/\./g, '\\.') + '[^\\s"<]*', 'i'));
         if (m) meetUrl = m[0];
       }
-      return { summary: summary, start: dtstart, end: dtend, meetUrl: meetUrl, hasMeet: hasMeet };
+      return { summary: summary, start: dtstart, end: dtend, meetUrl: meetUrl, hasMeet: hasMeet, uid: uid };
     } catch (_e) { return null; }
   }
 
@@ -409,16 +410,20 @@
       '#visio-upcoming-meets .vum-status{display:block;font-size:.78em;opacity:.85;margin-top:2px;font-weight:400}',
       '#visio-upcoming-meets .vum-actions{display:inline-flex;align-items:center;gap:6px}',
       '#visio-upcoming-meets a.vum-join{',
+      '  display:inline-flex;align-items:center;justify-content:center;gap:6px;',
       '  padding:6px 12px;background:#fff;color:#2FB56B;text-decoration:none;',
       '  border-radius:6px;font-size:.85em;font-weight:600;',
       '}',
+      '#visio-upcoming-meets a.vum-join:hover{background:#F0F9F4}',
+      '#visio-upcoming-meets a.vum-join svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
       '#visio-upcoming-meets a.vum-details{',
       '  display:inline-flex;align-items:center;justify-content:center;',
       '  width:28px;height:28px;background:rgba(255,255,255,.2);',
-      '  color:#fff;text-decoration:none;border-radius:6px;font-size:.85em;font-weight:600;',
+      '  color:#fff;text-decoration:none;border-radius:6px;',
       '  transition:background .15s ease;',
       '}',
       '#visio-upcoming-meets a.vum-details:hover{background:rgba(255,255,255,.35)}',
+      '#visio-upcoming-meets a.vum-details svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
       '#visio-upcoming-meets a.vum-agenda{',
       '  display:inline-block;padding:6px 12px;background:rgba(255,255,255,.2);',
       '  color:#fff;text-decoration:none;border-radius:6px;font-size:.85em;font-weight:500;',
@@ -548,25 +553,32 @@
 
         var actions = document.createElement('div');
         actions.className = 'vum-actions';
+        // Feather-icons style: single-line SVG, inherits currentColor. No
+        // font dependency, no emoji-vs-text platform inconsistency.
+        var VIDEO_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>';
+        var INFO_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
         if (e.meetUrl) {
           var btn = document.createElement('a');
           btn.className = 'vum-join';
           btn.href = e.meetUrl; btn.target = '_blank'; btn.rel = 'noopener';
-          btn.textContent = 'Rejoindre';
+          btn.innerHTML = VIDEO_ICON_SVG + '<span>Rejoindre</span>';
+          btn.title = 'Rejoindre la visioconférence';
           actions.appendChild(btn);
         }
-        // Deep-link to calendar-ng so the user can see the full event
-        // detail (attendees, description, delegate-host toggle).
-        // calendar-ng has no ?openEvent yet — this lands on the calendar
-        // where the user can find + click the event.
-        var details = document.createElement('a');
-        details.className = 'vum-details';
-        details.href = CFG.calendarUiBase + 'calendar';
-        details.target = '_blank'; details.rel = 'noopener';
-        details.title = 'Voir le détail dans l\'agenda';
-        details.setAttribute('aria-label', 'Voir le détail dans l\'agenda');
-        details.textContent = 'i';
-        actions.appendChild(details);
+        // Deep-link into calendar-ng's built-in /events/:uid handler,
+        // which stashes the uid in sessionStorage, routes to /calendar,
+        // and once calendars are loaded opens the EventPreviewModal
+        // directly on the target event.
+        if (e.uid) {
+          var details = document.createElement('a');
+          details.className = 'vum-details';
+          details.href = CFG.calendarUiBase + 'events/' + encodeURIComponent(e.uid);
+          details.target = '_blank'; details.rel = 'noopener';
+          details.title = 'Voir le détail dans l\'agenda';
+          details.setAttribute('aria-label', 'Voir le détail dans l\'agenda');
+          details.innerHTML = INFO_ICON_SVG;
+          actions.appendChild(details);
+        }
         li.appendChild(actions);
         ul.appendChild(li);
       });
