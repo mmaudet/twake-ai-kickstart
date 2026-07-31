@@ -915,35 +915,49 @@
       }
     });
 
-    // Restyle the primary/secondary meeting-action buttons by their
-    // label. Also catches the buttons in the two "Create" dropdown
-    // items, the "Join meeting" modal submit, and the copy-link button
-    // in the "Your connection info" modal — LaSuite defaults them to
-    // navy blue, but our brand for these actions is Twake green.
-    document.querySelectorAll('button, a[role="button"]').forEach(function (btn) {
-      var t = (btn.textContent || '').trim().toLowerCase();
-      if (t === 'créer une réunion' || t === 'create a meeting'
-          || t === 'démarrer une réunion instantanée'
-          || t === 'start an instant meeting'
-          || t === 'créer une réunion pour une date ultérieure'
-          || t === 'create a meeting for a later date'
-          || t === 'rejoindre la réunion'
-          || t === 'join meeting'
-          || t === 'join the meeting') {
-        btn.classList.add('vum-btn-primary');
-      } else if (t === 'rejoindre une réunion' || t === 'join a meeting') {
-        btn.classList.add('vum-btn-secondary');
-      }
+    // Restyle the primary meeting-action buttons using LaSuite Meet's
+    // stable `data-attr` hooks (locale-agnostic — text-match would
+    // break as soon as anyone runs their browser in DE/ES/IT/etc):
+    //   - `create-meeting`         → primary landing CTA + parent Menu
+    //   - `create-option-instant`  → dropdown "instant meeting" item
+    //   - `create-option-later`    → dropdown "later meeting" item
+    //   - `later-dialog-copy`      → URL copy chip in the "share link" modal
+    // See numerique-gouv/meet:src/frontend/src/features/home/components/*.
+    document.querySelectorAll(
+      '[data-attr="create-meeting"], '
+      + '[data-attr="create-option-instant"], '
+      + '[data-attr="create-option-later"], '
+      + '[data-attr="later-dialog-copy"]'
+    ).forEach(function (el) {
+      el.classList.add('vum-btn-primary');
     });
 
-    // The copy-link "chip" in the "Vos informations de connexion" modal
-    // renders as a button whose text is the meet URL — match by hostname
-    // to keep it robust across locales.
-    document.querySelectorAll('button, [role="button"]').forEach(function (btn) {
-      var t = (btn.textContent || '').trim();
-      if (/^meet\.[a-z0-9.-]+\/[a-z0-9-]+/i.test(t) && t.length < 120) {
-        btn.classList.add('vum-btn-primary');
+    // The landing "Join a meeting" button + the Join dialog's submit
+    // button don't carry a `data-attr`. Match them structurally:
+    //   - Landing join: the only Button inside a react-aria DialogTrigger
+    //     sibling of [data-attr="create-meeting"]'s Menu wrapper.
+    //   - Dialog submit: the sole submit button inside a react-aria
+    //     [role="dialog"] form.
+    var createMenu = document.querySelector('[data-attr="create-meeting"]');
+    if (createMenu) {
+      var hero = createMenu.closest('div');
+      if (hero) {
+        hero.querySelectorAll('button').forEach(function (btn) {
+          if (btn.hasAttribute('data-attr')) return; // primary CTA
+          if (btn.closest('[role="menu"]')) return;   // dropdown children
+          // The Login button (proconnect) sits between Create and Join.
+          // Skip anything that looks like ProConnect or a login button.
+          var label = (btn.getAttribute('aria-label') || '').toLowerCase();
+          if (/proconnect|login|connect|connexion|log\s*in/.test(label)) return;
+          var t = (btn.textContent || '').trim().toLowerCase();
+          if (/proconnect|connexion|connect|log\s*in|login/.test(t)) return;
+          btn.classList.add('vum-btn-secondary');
+        });
       }
+    }
+    // Join dialog submit
+    document.querySelectorAll('[role="dialog"] form button[type="submit"]').forEach(function (btn) {
+      btn.classList.add('vum-btn-primary');
     });
   }
 
