@@ -418,11 +418,11 @@
       '#visio-upcoming-meets a.vum-join svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
       '#visio-upcoming-meets a.vum-details{',
       '  display:inline-flex;align-items:center;justify-content:center;',
-      '  width:28px;height:28px;background:rgba(255,255,255,.2);',
-      '  color:#fff;text-decoration:none;border-radius:6px;',
+      '  width:28px;height:28px;background:#fff;color:#2FB56B;',
+      '  text-decoration:none;border-radius:6px;',
       '  transition:background .15s ease;',
       '}',
-      '#visio-upcoming-meets a.vum-details:hover{background:rgba(255,255,255,.35)}',
+      '#visio-upcoming-meets a.vum-details:hover{background:#F0F9F4}',
       '#visio-upcoming-meets a.vum-details svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}',
       '#visio-upcoming-meets a.vum-agenda{',
       '  display:inline-block;padding:6px 12px;background:rgba(255,255,255,.2);',
@@ -556,7 +556,7 @@
         // Feather-icons style: single-line SVG, inherits currentColor. No
         // font dependency, no emoji-vs-text platform inconsistency.
         var VIDEO_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>';
-        var INFO_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+        var CAL_ICON_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>';
         if (e.meetUrl) {
           var btn = document.createElement('a');
           btn.className = 'vum-join';
@@ -576,7 +576,7 @@
           details.target = '_blank'; details.rel = 'noopener';
           details.title = 'Voir le détail dans l\'agenda';
           details.setAttribute('aria-label', 'Voir le détail dans l\'agenda');
-          details.innerHTML = INFO_ICON_SVG;
+          details.innerHTML = CAL_ICON_SVG;
           actions.appendChild(details);
         }
         li.appendChild(actions);
