@@ -19,6 +19,10 @@
         <logger name="org.apache.james" level="INFO" />
         <logger name="org.apache.james.metrics" level="WARN" />
         <logger name="com.linagora.calendar.restapi" level="DEBUG" />
+        <logger name="com.linagora.calendar.restapi.routes.people" level="TRACE" />
+        <logger name="com.linagora.calendar.restapi.routes.PeopleSearchRoute" level="TRACE" />
+        <logger name="com.linagora.tmail.james.jmap.contact" level="DEBUG" />
+        <logger name="com.linagora.calendar.storage" level="DEBUG" />
         <logger name="com.linagora" level="INFO" />
 
 </configuration>

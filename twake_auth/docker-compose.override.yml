@@ -1,0 +1,13 @@
+# Local override for athena deployment.
+#
+# The kickstart's Traefik defaults to binding 80/443 on 0.0.0.0. On athena
+# those are already held by blog-maudet-caddy, so we bind Traefik on the
+# Tailscale interface only (100.64.110.85) at custom ports 6400/6443.
+# hermes nginx reverse-proxies *.kickstart.maudet.cloud to https://100.64.110.85:6443
+# with proxy_ssl_verify off (Traefik uses its self-signed cert internally).
+
+services:
+  reverse-proxy:
+    ports: !override
+      - "100.64.110.85:6400:80"
+      - "100.64.110.85:6443:443"

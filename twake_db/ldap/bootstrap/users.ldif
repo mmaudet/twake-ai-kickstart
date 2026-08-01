@@ -1,23 +1,23 @@
 # ========================
 # Organizational Units
 # ========================
-dn: ou=users,dc=twake,dc=local
+dn: ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: organizationalUnit
 ou: users
 
-dn: ou=groups,dc=twake,dc=local
+dn: ou=groups,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: organizationalUnit
 ou: groups
 
-dn: ou=organizations,dc=twake,dc=local
+dn: ou=organizations,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: organizationalUnit
 ou: organizations
 
-dn: ou=positions,dc=twake,dc=local
+dn: ou=positions,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: organizationalUnit
 ou: positions
 
-dn: ou=devices,dc=twake,dc=local
+dn: ou=devices,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: organizationalUnit
 ou: devices
 
@@ -25,7 +25,7 @@ ou: devices
 # ========================
 # Admin user
 # ========================
-dn: uid=admin,ou=users,dc=twake,dc=local
+dn: uid=admin,ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -33,7 +33,7 @@ uid: admin
 cn: Admin Test
 sn: Test
 givenName: Admin Test
-mail: admin@twake.local
+mail: admin@twake-dev.maudet.cloud
 mobile: +21699123456
 userPassword: Admin@123
 uidNumber: 10000
@@ -45,7 +45,7 @@ loginShell: /bin/bash
 # ========================
 # User 1
 # ========================
-dn: uid=user1,ou=users,dc=twake,dc=local
+dn: uid=user1,ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -53,7 +53,7 @@ uid: user1
 cn: User One
 sn: One
 givenName: User One
-mail: user1@twake.local
+mail: user1@twake-dev.maudet.cloud
 mobile: +21622123456
 userPassword: user1
 uidNumber: 10001
@@ -65,7 +65,7 @@ loginShell: /bin/bash
 # ========================
 # User 2
 # ========================
-dn: uid=user2,ou=users,dc=twake,dc=local
+dn: uid=user2,ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -73,7 +73,7 @@ uid: user2
 cn: User Two
 sn: Two
 givenName: User Two
-mail: user2@twake.local
+mail: user2@twake-dev.maudet.cloud
 mobile: +21623123456
 userPassword: user2
 uidNumber: 10002
@@ -85,7 +85,7 @@ loginShell: /bin/bash
 # ========================
 # User 3
 # ========================
-dn: uid=user3,ou=users,dc=twake,dc=local
+dn: uid=user3,ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
@@ -93,7 +93,7 @@ uid: user3
 cn: User Three
 sn: Three
 givenName: User Three
-mail: user3@twake.local
+mail: user3@twake-dev.maudet.cloud
 mobile: +21624123456
 userPassword: user3
 uidNumber: 10003
@@ -105,14 +105,14 @@ loginShell: /bin/bash
 # ========================
 # Test user
 # ========================
-dn: uid=test,ou=users,dc=twake,dc=local
+dn: uid=test,ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 uid: test
 cn: Test User
 sn: User
-mail: test@twake.local
+mail: test@twake-dev.maudet.cloud
 mobile: +21625123456
 userPassword: Test@123
 uidNumber: 10004
@@ -124,14 +124,14 @@ loginShell: /bin/bash
 # ========================
 # DungPD user
 # ========================
-dn: uid=dungpd,ou=users,dc=twake,dc=local
+dn: uid=dungpd,ou=users,dc=twake-dev,dc=maudet,dc=cloud
 objectClass: inetOrgPerson
 objectClass: posixAccount
 objectClass: shadowAccount
 uid: dungpd
 cn: Dung Pham
 sn: Pham
-mail: dungpd@twake.local
+mail: dungpd@twake-dev.maudet.cloud
 mobile: +21626123456
 userPassword: Dungpd@123
 uidNumber: 10005

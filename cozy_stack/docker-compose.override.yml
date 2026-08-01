@@ -1,0 +1,10 @@
+# Local override for athena deployment.
+#
+# Mount the host's cozy_apps/ directory into cozyt so that
+# `cozy-stack apps install <slug> file:///apps/<slug>` can pick up
+# the app sources we rsync in there from dev.twake.ai worktrees.
+
+services:
+  cozy-stack:
+    volumes:
+      - /home/mmaudet/deploy/kickstart-maudet-cloud/cozy_apps:/apps:ro

@@ -1,0 +1,42 @@
+# Local override for athena deployment.
+#
+# meet-prod (linagora-suite Meet) already binds LiveKit on 0.0.0.0:7881 tcp+udp
+# and 0.0.0.0:7882 udp. Bind the kickstart LiveKit on Tailscale-only alt ports
+# so both stacks coexist. Traefik proxies WebSocket signaling on a public
+# subdomain so browsers can reach it.
+#
+# The backend advertises LIVEKIT_API_URL to browsers via /api/v1.0/config, so
+# it must be the public wss URL. To keep server->livekit calls working we add
+# an extra_hosts entry on the backend that resolves the public URL back to
+# Traefik's internal bridge IP.
+
+services:
+  livekit:
+    ports: !override
+      - "100.64.110.85:7883:7880"       # signaling / HTTP
+      - "100.64.110.85:7884:7881/tcp"   # RTC TCP
+      - "100.64.110.85:7884:7881/udp"   # RTC UDP mux
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.livekit.rule=Host(`livekit.${BASE_DOMAIN}`)"
+      - "traefik.http.routers.livekit.entrypoints=websecure"
+      - "traefik.http.routers.livekit.tls=true"
+      - "traefik.http.services.livekit.loadbalancer.server.port=7880"
+
+  backend:
+    # settings.py surcharge : l image amont v1.24.0 ne declare que
+    # SessionAuthenticationWith401 comme classe d authentification DRF, donc
+    # aucun jeton porteur ne peut passer et un client mobile recoit 401 sur
+    # /api/v1.0/users/me/. L image de production, elle, declare aussi
+    # mozilla_django_oidc.contrib.drf.OIDCAuthentication. Ce montage ajoute
+    # cette seule classe, plus OIDC_DRF_AUTH_BACKEND pour que les comptes
+    # soient crees par le backend de meet. A retirer le jour ou l image de dev
+    # sera alignee sur celle de production.
+    volumes:
+      - ./config/settings.py:/app/meet/settings.py:ro
+    environment:
+      LIVEKIT_API_URL: https://livekit.${BASE_DOMAIN}
+      LIVEKIT_FORCE_WSS_PROTOCOL: "True"
+    extra_hosts:
+      - "auth.${BASE_DOMAIN}:172.27.0.100"
+      - "livekit.${BASE_DOMAIN}:172.27.0.100"

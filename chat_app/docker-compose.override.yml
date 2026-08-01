@@ -1,0 +1,21 @@
+# Local override for the tom-server v2026-04-30 regression.
+#
+# The published image now REQUIRES a config.yaml at one of:
+#   /etc/twake/chat/tom/config.yaml, /usr/local/etc/..., ~/.config/..., /app/.tomconfig.yaml
+# Older versions fell back to env vars only; the new @twake/config-parser
+# hard-errors with "No config files found" before it looks at env vars.
+#
+# Same treatment for `fed` (linagora/tom-federated-identity-service:v2026-04-15)
+# which uses the same config loader.
+#
+# We mount an empty YAML doc so the loader finds a file; every other setting
+# still comes from the environment: block in docker-compose.yaml.
+
+services:
+  tom:
+    volumes:
+      - ./tom/config.yaml:/etc/twake/chat/tom/config.yaml:ro
+
+  fed:
+    volumes:
+      - ./tom/config.yaml:/etc/twake/chat/fed/config.yaml:ro

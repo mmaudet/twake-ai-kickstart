@@ -27,3 +27,12 @@ calendar_app/frontend/calendar/openpaas.js
 calendar_app/frontend/contacts/openpaas.js
 calendar_app/frontend/env.js
 meet_app/upstream/
+
+# Cozy sub-apps assets/build (99 MB, not a submodule)
+cozy_apps/
+
+# Dated backup snapshots left by manual edits
+*.bak-*
+
+# OpenSSL CA serial file (transient state)
+twake_auth/traefik/ssl/*.srl

@@ -37,6 +37,20 @@ server {
   }
 
   # Serve static files
+  # Android App Links : permet a Android de remettre
+  # https://meet.<domaine>/auth/mobile-callback/ directement a l application
+  # twake-visio au lieu de la charger dans le navigateur. Doit etre servi en
+  # application/json, sans redirection, et hors du catch-all de la SPA.
+  #
+  # Deux empreintes : celle du keystore genere par expo prebuild
+  # (android/app/debug.keystore) et celle du debug.keystore d Android Studio.
+  # A remplacer par la cle de publication le jour venu.
+  location = /.well-known/assetlinks.json {
+      default_type application/json;
+      add_header Cache-Control "public, max-age=300";
+      return 200 '[{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.linagora.twakevisio","sha256_cert_fingerprints":["FA:C6:17:45:DC:09:03:78:6F:B9:ED:E6:2A:96:2B:39:9F:73:48:F0:BB:6F:89:9B:83:32:66:75:91:03:3B:9C","4B:19:FF:28:78:AE:D8:72:D8:89:A9:F1:98:2D:35:2C:25:1E:7B:09:92:DC:0B:44:85:29:3D:9A:28:86:5C:A6"]}}]';
+  }
+
   location / {
       try_files $uri $uri/ /index.html;
       # Add no-cache headers
