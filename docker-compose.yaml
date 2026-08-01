@@ -6,3 +6,6 @@ include:
   - linshare_app/docker-compose.yml
   - twake_db/docker-compose.yml
   - twake_auth/docker-compose.yml
+  # Twaky — graph agentic brick (sibling repo, own .env, own volumes).
+  # Source: /home/mmaudet/work/twaky. Runnable standalone too.
+  - ../../work/twaky/docker-compose.yml
