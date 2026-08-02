@@ -512,7 +512,7 @@ index 8487612..ea55f14 100644
      event.exdates.forEach(ex => {
        vevent[1].push([
 diff --git a/common/src/features/Events/utils/parseCalendarEvent.ts b/common/src/features/Events/utils/parseCalendarEvent.ts
-index 173fc0f..d1ce7fe 100644
+index 173fc0f..3caf21d 100644
 --- a/common/src/features/Events/utils/parseCalendarEvent.ts
 +++ b/common/src/features/Events/utils/parseCalendarEvent.ts
 @@ -27,6 +27,7 @@ const KNOWN_PROPS = new Set([
@@ -551,18 +551,26 @@ index 173fc0f..d1ce7fe 100644
    summary: (params, value, event) => {
      event.title = safeString(value)
    },
-@@ -368,6 +383,16 @@ export function parseCalendarEvent({
+@@ -368,6 +383,24 @@ export function parseCalendarEvent({
  
    processEventUid(event, context.recurrenceId)
  
 +  // WS3 host-delegation: apply the X-TWAKE-DELEGATE-HOSTS emails to the
 +  // matching parsed attendees so the UI can hydrate the crown toggle.
-+  if (context.delegateHostEmails && event.attendee) {
-+    event.attendee = event.attendee.map(att =>
-+      context.delegateHostEmails!.has(att.cal_address.toLowerCase())
-+        ? att.withDelegateHost(true)
-+        : att
-+    )
++  // Guarded try/catch — a broken attendee shape (post-Redux plain object
++  // without .withDelegateHost) would otherwise reject the whole calendar
++  // refresh via the pMap outer promise.
++  try {
++    if (context.delegateHostEmails && event.attendee) {
++      event.attendee = event.attendee.map(att =>
++        typeof att.withDelegateHost === 'function' &&
++        context.delegateHostEmails!.has((att.cal_address || '').toLowerCase())
++          ? att.withDelegateHost(true)
++          : att
++      )
++    }
++  } catch (err) {
++    console.warn('[WS3] failed to apply delegate-host flag', err)
 +  }
 +
    const alarms = parseAlarms(valarms)
